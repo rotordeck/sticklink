@@ -67,7 +67,8 @@ export function badge(name: string, tel: Telemetry, units: Units): Badge | null 
   if (info.conv === 'speed' && units.speed === 'mph') { value *= 0.621371; unit = 'mph'; }
   if (info.conv === 'alt' && units.alt === 'ft') { value *= 3.28084; unit = 'ft'; }
   if (info.conv === 'deg') value = (value * 180) / Math.PI;
-  const live = s.current;
+  // A dBm reading of 0 or more is not a signal (an unused second antenna reports 0): show it as absent, never as a perfect value.
+  const live = s.current && !(unit === 'dBm' && s.value >= 0);
   return {
     id: name, label: info.label, unit, value: live ? value : null,
     text: live ? value.toFixed(info.dec) : '—',

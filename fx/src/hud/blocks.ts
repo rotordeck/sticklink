@@ -190,7 +190,7 @@ export function drawStatus(ctx: Ctx, look: Look, d: HudData) {
   const armText = !d.armSwitch ? 'NO ARM SWITCH' : !known ? 'NO DATA' : armed ? 'ARMED' : 'DISARMED';
   // ARM badge
   ctx.save();
-  const pulseA = armed ? 0.75 + 0.25 * Math.sin(look.t * 6) : 1, c = armed ? '#ff5a4d' : known ? look.accent : look.muted;
+  const pulseA = armed ? 0.75 + 0.25 * Math.sin(look.t * 6) : 1, c = armed ? '#ff5a4d' : known ? look.ok : look.muted;
   ctx.globalAlpha = pulseA; ctx.fillStyle = armed ? 'rgba(255,90,77,0.18)' : 'rgba(255,255,255,0.06)'; ctx.strokeStyle = c; ctx.lineWidth = 2.5;
   if (look.glow > 0 && armed) { ctx.shadowColor = c; ctx.shadowBlur = look.glow; }
   ctx.beginPath(); ctx.roundRect(18, 22, 158, 50, 10); ctx.fill(); ctx.stroke(); ctx.restore();

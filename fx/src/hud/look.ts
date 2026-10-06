@@ -5,10 +5,11 @@ import type { Style } from '../render/style.ts';
 import type { Level } from './catalog.ts';
 
 export type Ctx = CanvasRenderingContext2D;
-export const WARN = '#ffb347', CRIT = '#ff4d4d';
+export const WARN = '#ffb347', CRIT = '#ff4d4d', OK_GREEN = '#41d98b';
 
 export interface Look {
   style: Style;
+  ok: string; // the colour of a healthy value: the accent, unless that is red/orange/yellow (then it would look like a warning)
   t: number; // seconds, for animation
   accent: string; hot: string; text: string; stroke: string; muted: string; plate: string; ring: string;
   glow: number; // shadow blur in design units
@@ -17,6 +18,14 @@ export interface Look {
 }
 
 const rgba = (c: [number, number, number, number], a = 1) => `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${Math.max(0, Math.min(1, c[3] * a)).toFixed(3)})`;
+/** Reds, oranges and yellows (hue up to 60 or from 330 degrees, reasonably saturated) can be confused with the warning colours. */
+export function isWarm(css: string): boolean {
+  const [r, g, b] = parseColor(css).map((v) => v / 255), max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+  if (d < 0.2 || max === 0) return false; // grey / white: no hue to confuse
+  const h = max === r ? (((g - b) / d) % 6) * 60 : max === g ? ((b - r) / d + 2) * 60 : ((r - g) / d + 4) * 60, hue = (h + 360) % 360;
+  return hue <= 60 || hue >= 330;
+}
+
 const hsl = (h: number, a = 1, l = 62) => `hsla(${(h % 360).toFixed(0)},100%,${l}%,${a})`;
 
 export function makeLook(style: Style, t: number): Look {
@@ -24,12 +33,13 @@ export function makeLook(style: Style, t: number): Look {
   const hot = style.rainbow ? hsl(t * 70 + 120) : style.hot ?? style.dot;
   const ring = style.ring === 'rainbow' ? hsl(t * 70 + 200) : style.ring;
   const text = style.textColor, muted = rgba(parseColor(text), 0.55);
+  const ok = style.rainbow ? accent : isWarm(accent) ? OK_GREEN : accent;
   const look: Look = {
-    style, t, accent, hot, text, stroke: style.textStroke, muted, ring,
+    style, ok, t, accent, hot, text, stroke: style.textStroke, muted, ring,
     plate: style.plate ?? 'rgba(0,0,0,0.30)',
     glow: (style.glow + style.bloom * 0.5) * 16,
     font: (px, weight = '') => `${weight} ${style.font.replace('{px}', px.toFixed(1))}`.trim(),
-    levelColor: (level) => (level === 'warn' ? WARN : level === 'crit' ? CRIT : level === 'off' ? muted : accent),
+    levelColor: (level) => (level === 'warn' ? WARN : level === 'crit' ? CRIT : level === 'off' ? muted : ok),
   };
   return look;
 }
