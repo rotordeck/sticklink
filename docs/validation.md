@@ -47,6 +47,12 @@ OBS's scene panel exactly. Scene *switching* was never run against your live OBS
 password, wrong password, events, reconnects) and by end-to-end tests from radio channel records to the scene request. **The password handshake has not been tried against a real OBS
 that requires one**, and the Learn button has only been tested as logic, not with a real switch.
 
+## Visualiser plugins and the window
+
+Plugins were run in headless Chrome only (the three included ones plus probe plugins): they receive live demo data, a crashing plugin shows its error, and a probe confirms the
+sandbox: `fetch`, the parent page and storage are all blocked. Not tried: plugins written by anyone else, long OBS sessions with a heavy plugin, other browsers than Chrome/OBS's CEF.
+The window (Start/Stop/status/links, plugin install) was driven by automated tests and a self-test of the frozen Linux binary; its look on Windows and macOS has not been seen by a person.
+
 ## Automated tests
 
 - **Python**: protocol and framing, state (resets, gaps, aging), recording and replay, `check-log`, settings storage and

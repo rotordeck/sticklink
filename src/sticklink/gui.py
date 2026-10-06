@@ -3,21 +3,23 @@ import os
 import sys
 import webbrowser
 import tkinter as tk
-from tkinter import messagebox, ttk
+from tkinter import filedialog, messagebox, ttk
 
 from . import __version__
+from .plugins import PluginError, PluginStore
 from .service import Service
 
 DEMO = 'Demo (no radio)'
 PAGES = (('Overlay for OBS', '/fx'), ('Setup', '/setup'), ('Scene switching', '/modes'),
-         ('Telemetry HUD', '/hud'), ('API docs', '/docs'))
+         ('Telemetry HUD', '/hud'), ('Visualisers', '/viz'), ('API docs', '/docs'))
 COLOURS = {'off': '#888888', 'wait': '#d98e04', 'ok': '#1a9b3c', 'bad': '#c0392b'}
 
 
 def ports():
     try:
         from serial.tools.list_ports import comports
-        return [f'{p.device}  {p.description}' for p in comports()]
+        # Linux lists every built-in serial port (ttyS0...) with no hardware id: those are never a radio.
+        return [f'{p.device}  {p.description}' for p in comports() if p.hwid and p.hwid != 'n/a']
     except Exception:
         return []
 
@@ -63,6 +65,10 @@ class Window:
             b = ttk.Button(pages, text=label, command=lambda p=path: self.open(p))
             b.grid(row=i // 3, column=i % 3, padx=(0, 4), pady=2)
             self.page_buttons.append(b)
+        extra = ttk.Frame(frame)
+        extra.grid(row=7, column=0, columnspan=2, sticky='w', pady=(8, 0))
+        ttk.Button(extra, text='Add visualiser plugin...', command=self.add_plugin).grid(row=0, column=0, padx=(0, 4))
+        ttk.Button(extra, text='Plugins folder', command=self.open_plugins).grid(row=0, column=1)
         self.refresh()
         self.tick()
         root.protocol('WM_DELETE_WINDOW', self.close)
@@ -70,7 +76,7 @@ class Window:
     def refresh(self):
         self.choice['values'] = [DEMO] + ports()
         if self.choice.get() not in self.choice['values']:
-            self.choice.current(1 if len(self.choice['values']) > 1 else 0)  # first real radio, else demo
+            self.choice.current(1 if len(self.choice['values']) > 1 else 0)  # first USB serial device, else demo
 
     def selected_port(self):
         value = self.choice.get()
@@ -86,6 +92,28 @@ class Window:
                 messagebox.showerror('Sticklink', f'Cannot start on {self.service.url()}:\n{exc}\n\n'
                                      'Is Sticklink already running (another window or a terminal)?')
         self.tick(once=True)
+
+    def add_plugin(self):
+        source = filedialog.askopenfilename(title='Choose a plugin (.zip or .js)', filetypes=[('Plugin', '*.zip *.js'), ('All files', '*')])
+        if not source:
+            return
+        store = (self.service.server_options.get('plugin_store') or PluginStore())
+        try:
+            try:
+                name = store.install(source)
+            except PluginError as exc:
+                if 'already installed' not in str(exc) or not messagebox.askyesno('Sticklink', f'{exc}\n\nReplace it?'):
+                    raise
+                name = store.install(source, replace=True)
+        except PluginError as exc:
+            messagebox.showerror('Sticklink', f'Cannot install this plugin:\n{exc}')
+            return
+        messagebox.showinfo('Sticklink', f'Installed "{name}". Open Visualisers to see it.')
+
+    def open_plugins(self):
+        store = (self.service.server_options.get('plugin_store') or PluginStore())
+        store.user_dir.mkdir(parents=True, exist_ok=True)
+        webbrowser.open(store.user_dir.as_uri())
 
     def open(self, path):
         if self.service.running:

@@ -14,12 +14,12 @@ import urllib.request
 
 PORT = 8899
 BASE = f'http://127.0.0.1:{PORT}'
-PAGES = ['/fx', '/setup', '/overlay', '/docs', '/hud', '/hud/link', '/hud/battery', '/hud/gps', '/hud/status', '/modes',
+PAGES = ['/fx', '/setup', '/overlay', '/docs', '/hud', '/hud/link', '/hud/battery', '/hud/gps', '/hud/status', '/modes', '/viz', '/viz/starfield', '/viz/starfield/frame', '/viz/starfield/file/main.js', '/viz/tunnel/file/plugin.json', '/assets/viz-runtime.js', '/assets/viz-host.js',
          '/assets/stickfx.js', '/assets/setup.js', '/assets/hud.js', '/assets/modes.js', '/assets/components.js',
          '/assets/fonts/bungee-latin-400-normal.woff2', '/assets/swagger/swagger-ui-bundle.js',
          '/assets/swagger/swagger-ui.css']
 API = ['/api/v1/openapi.json', '/api/v1/styles', '/api/v1/settings', '/api/v1/gps', '/api/v1/gps/track', '/api/v1/telemetry', '/api/v1/channels',
-       '/api/v1/obs', '/api/v1/scene-modes', '/api/v1/scene-modes/state']
+       '/api/v1/obs', '/api/v1/scene-modes', '/api/v1/scene-modes/state', '/api/v1/plugins']
 
 
 def get(path, method='GET', body=None):

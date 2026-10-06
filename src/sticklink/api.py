@@ -239,6 +239,9 @@ def register(app, server):
         report = analyze(rec.path_for(request.match_info['name']))
         return web.Response(text=json.dumps(report, allow_nan=False), content_type='application/json')
 
+    async def plugins(request):
+        return ok(dict(plugins=server.plugins.listing()))
+
     spec_json = json.dumps(build())
 
     async def openapi(request):
@@ -252,6 +255,7 @@ def register(app, server):
         ('GET', '/obs', obs_status), ('PATCH', '/obs/connection', obs_connection), ('POST', '/obs/scene', obs_scene),
         ('GET', '/scene-modes', modes), ('PUT', '/scene-modes', modes_put), ('GET', '/scene-modes/state', modes_state),
         ('POST', '/scene-modes/apply', modes_apply),
+        ('GET', '/plugins', plugins),
         ('GET', '/channels', channels), ('GET', '/channels/{n}', channel), ('GET', '/styles', styles),
         ('GET', '/settings', settings),
         ('PUT', '/settings', settings_write(fx.replace)), ('PATCH', '/settings', settings_write(fx.save)),

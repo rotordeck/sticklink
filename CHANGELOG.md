@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Visualiser plugins: a gallery at `/viz`, one page per plugin (`/viz/<id>`) for OBS, `sticklink plugin install|list|remove|path`, an "Add visualiser plugin" button in the window, `GET /api/v1/plugins`. Plugins are small canvas scripts that receive sticks, switches and telemetry; they run in a sandboxed frame with no network access. Starfield, Neon tunnel and Phosphor scope are included. See `docs/plugins.md`.
+- The window no longer lists the built-in serial ports (`ttyS0`...) as radios.
+
 ## 0.1.1 (2026-10-06)
 
 - A small window (`sticklink gui`, also what you get when you start the program without arguments): pick the radio or Demo, Start / Stop, status light, buttons for the web pages.

@@ -215,6 +215,75 @@ class FakeObsThread:
         self.loop.call_soon_threadsafe(self.loop.stop)
 
 
+VIZ = ROOT/'tests'/'browser'/'viz.mjs'
+
+
+@unittest.skipUnless(ENABLED, 'set STICKLINK_BROWSER_TESTS=1 (needs Chrome and Node 22+)')
+class VisualiserBrowserTests(unittest.TestCase):
+    PROBE = '''Sticklink.visualizer({draw(ctx, w, h, f) {
+      this.n = (this.n || 0) + 1;
+      if (this.n === 1) this.fetched = fetch('/api/v1/status').then(() => 'allowed', () => 'blocked');
+      if (this.n === 90) {
+        let parentAccess = 'blocked', storage = 'blocked';
+        try { parent.document.title; parentAccess = 'allowed'; } catch (e) {}
+        try { localStorage.getItem('x'); storage = 'allowed'; } catch (e) {}
+        this.fetched.then((fetchResult) => Sticklink.log('probe fetch=' + fetchResult + ' parent=' + parentAccess + ' storage=' + storage + ' live=' + f.live + ' moving=' + (Math.abs(f.sticks.roll) + Math.abs(f.sticks.pitch) > 0.001) + ' w=' + w));
+      }
+      ctx.fillStyle = '#fff'; ctx.fillRect(10, 10, 50, 50);
+    }});'''
+    CRASH = "Sticklink.visualizer({draw(ctx) { throw new Error('boom from the plugin'); }});"
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp = tempfile.TemporaryDirectory()
+        plugins = Path(cls.tmp.name)/'plugins'
+        for name, script in (('probe', cls.PROBE), ('crash', cls.CRASH)):
+            (plugins/name).mkdir(parents=True)
+            (plugins/name/'plugin.json').write_text(json.dumps(dict(name=name.title(), api=1)))
+            (plugins/name/'main.js').write_text(script)
+        port = free_port()
+        cls.base = f'http://127.0.0.1:{port}'
+        cls.proc = subprocess.Popen([sys.executable, '-m', 'sticklink', 'run', '--demo', '--http-port', str(port), '--plugins-dir', str(plugins),
+                                     '--fx-config', str(Path(cls.tmp.name)/'fx.json'), '--scenes-config', str(Path(cls.tmp.name)/'scenes.json'),
+                                     '--recordings-dir', str(Path(cls.tmp.name)/'rec')], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        for _ in range(100):
+            try:
+                api(cls.base, '/api/v1/status')
+                break
+            except (urllib.error.URLError, ConnectionError):
+                time.sleep(0.2)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.proc.terminate()
+        try:
+            cls.proc.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            cls.proc.kill()
+        cls.tmp.cleanup()
+
+    def test_plugins_run_sandboxed_get_live_data_and_report_errors(self):
+        run = subprocess.run([NODE, str(VIZ), self.base, 'probe', 'crash', 'starfield', 'tunnel', 'scope'], capture_output=True, text=True, timeout=180,
+                             env={**os.environ, 'CHROME': CHROME})
+        self.assertEqual(run.returncode, 0, run.stderr)
+        r = json.loads(run.stdout.strip().splitlines()[-1])
+        probe = r['probe']['data']
+        self.assertEqual(probe['ready'], 'plugin')
+        self.assertGreater(int(probe['frames']), 60)
+        self.assertEqual(probe['log'].split(' w=')[0],
+                         'probe fetch=blocked parent=blocked storage=blocked live=true moving=true')  # sandboxed, no network, but fed live demo data
+        self.assertNotIn('error', probe)
+        self.assertEqual(r['crash']['data']['error'], 'boom from the plugin')
+        self.assertEqual(r['crash']['banner'], 'block')  # the author sees the failure
+        for name in ('starfield', 'tunnel', 'scope'):
+            self.assertGreater(int(r[name]['data']['frames']), 60, name)
+            self.assertNotIn('error', r[name]['data'], name)
+        for item in r.values():
+            self.assertEqual(item['errors'], [])
+        self.assertGreaterEqual(r['gallery']['cards'], 5)
+        self.assertIn('Starfield', r['gallery']['names'])
+
+
 @unittest.skipUnless(ENABLED, 'set STICKLINK_BROWSER_TESTS=1 (needs Chrome and Node 22+)')
 class ModesPageBrowserTests(unittest.TestCase):
     SCENES = ['Intro', 'Drone', 'Dronecontroller', 'Room', 'Instant replay', 'Crash replays']

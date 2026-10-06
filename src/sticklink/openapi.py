@@ -53,6 +53,12 @@ SCHEMAS = {
     'GpsTrack': obj(dict(home=nullable(ref('LatLon')),
                          points=dict(type='array', items=dict(type='array', items=dict(type='number'), minItems=2, maxItems=2),
                                      description='[lat, lon] pairs, thinned to one per 2 m, at most 5000'))),
+    'Plugin': obj(dict(
+        id=dict(type='string', description='Folder name; the visualiser is at `/viz/{id}`'), name=dict(type='string'), author=dict(type='string'),
+        description=dict(type='string'), version=dict(type='string'), builtin=dict(type='boolean', description='Shipped with Sticklink (false = yours)'),
+        error=nullable(dict(type='string', description='Why the plugin cannot run, e.g. a broken plugin.json')), url=dict(type='string')),
+        description='A visualiser plugin (see docs/plugins.md).'),
+    'Plugins': obj(dict(plugins=dict(type='array', items=ref('Plugin')))),
     'ObsStatus': obj(dict(
         status=dict(type='string', enum=['disabled', 'connecting', 'connected', 'unreachable', 'auth_failed', 'error']),
         error=dict(type='string'), enabled=dict(type='boolean'), host=dict(type='string'), port=dict(type='integer'),
@@ -217,7 +223,7 @@ def build():
         'servers': [{'url': '/'}],
         'tags': [{'name': 'Live', 'description': 'Radio data, now'}, {'name': 'Settings', 'description': 'Overlay settings and stick mapping'},
                  {'name': 'Recording', 'description': 'Session logs'},
-                 {'name': 'OBS scenes', 'description': 'Switch OBS scenes from radio switches'}, {'name': 'Legacy', 'description': 'Kept for the bundled pages'}],
+                 {'name': 'Plugins', 'description': 'Visualiser plugins'}, {'name': 'OBS scenes', 'description': 'Switch OBS scenes from radio switches'}, {'name': 'Legacy', 'description': 'Kept for the bundled pages'}],
         'paths': {
             '/api/v1/status': {'get': {
                 'tags': ['Live'], 'operationId': 'getStatus', 'summary': 'Service and radio status',
@@ -256,6 +262,10 @@ def build():
                 'delete': {'tags': ['Live'], 'operationId': 'clearGpsTrack', 'summary': 'Forget the track and home point',
                            'description': 'The next position becomes the new home. Also happens automatically when the radio script restarts.',
                            'responses': {'200': _ok(ref('GpsTrack'), 'The (now empty) track')}}},
+            '/api/v1/plugins': {'get': {
+                'tags': ['Plugins'], 'operationId': 'listPlugins', 'summary': 'Installed visualiser plugins',
+                'description': 'New folders in the plugins folder show up here without a restart. Open one at `/viz/{id}`, add it to OBS as a Browser Source.',
+                'responses': {'200': _ok(ref('Plugins'))}}},
             '/api/v1/obs': {'get': {
                 'tags': ['OBS scenes'], 'operationId': 'getObs', 'summary': 'Connection to OBS, its scenes and the current scene',
                 'responses': {'200': _ok(ref('ObsStatus'))}}},

@@ -6,6 +6,11 @@
 
 A small window: radio picker (or Demo), **Start / Stop**, a status light (stopped, waiting for the radio, connected) and buttons that open the web pages. It serves on port 8765 and stops everything when closed. Needs tkinter (included in the downloads; on Linux with pip install `python3-tk`).
 
+## `sticklink plugin ...`
+
+`install SOURCE [--force]` (a folder, a `.zip` or a single `.js`), `remove NAME`, `list`, `path`. `--plugins-dir DIR` (before the action) uses another folder.
+See [plugins](plugins.md). `run` and `replay` accept `--plugins-dir` too.
+
 ## `run` - serve the overlays
 
 Exactly one of `--port` or `--demo`.
