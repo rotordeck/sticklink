@@ -1,0 +1,208 @@
+"""REST API handlers (see openapi.py for the contract; /docs for Swagger UI)."""
+import json
+import re
+import time
+
+from aiohttp import web
+
+from . import __version__
+from .analysis import analyze
+from .fxconfig import STYLE_INFO, validate
+from .openapi import build
+from .recorder import RecorderError
+
+SENSOR = re.compile(r'[A-Za-z0-9_-]{1,24}')
+LOCAL_HOSTS = {'localhost', '127.0.0.1', '[::1]'}
+STATUS_FOR = dict(already_recording=409, not_recording=409, recording_active=409, invalid_label=400,
+                  invalid_name=400, not_found=404)
+
+
+def error(status, code, message):
+    return web.json_response(dict(error=dict(code=code, message=message)), status=status)
+
+
+@web.middleware
+async def guard(request, handler):
+    """Reject foreign Host headers (DNS rebinding) and give API errors a JSON body."""
+    host = request.host.rsplit(':', 1)[0] if not request.host.endswith(']') else request.host
+    if host not in LOCAL_HOSTS:
+        return error(403, 'forbidden_host', 'this server only answers to localhost')
+    try:
+        return await handler(request)
+    except web.HTTPException as exc:
+        if request.path.startswith('/api/') and not exc.empty_body:
+            reason = exc.reason.lower().replace(' ', '_')
+            return error(exc.status, reason, exc.text if exc.text and exc.text != f'{exc.status}: {exc.reason}' else exc.reason)
+        raise
+
+
+async def json_body(request, allow_empty=False):
+    if request.content_type != 'application/json':
+        if allow_empty and not request.can_read_body:
+            return {}
+        raise web.HTTPUnsupportedMediaType(text='send Content-Type: application/json')
+    try:
+        data = await request.json()
+    except ValueError:
+        raise web.HTTPBadRequest(text='body is not valid JSON')
+    if not isinstance(data, dict):
+        raise web.HTTPBadRequest(text='body must be a JSON object')
+    return data
+
+
+def register(app, server):
+    pipe, fx, rec = server.pipeline, server.fx_config, server.recorder
+    started = time.monotonic()
+    snap = pipe.snapshot
+    ok = web.json_response
+
+    async def status(request):
+        s = snap()
+        st = pipe.state
+        return ok(dict(version=__version__, uptime_s=round(time.monotonic()-started, 1), source=server.source.label,
+                       radio=dict(status=s['status'], connected=st.connected, session=s['session'], age_ms=s['age_ms'],
+                                  error=s['error'], input=s['source'], notes=s['notes']),
+                       diagnostics=s['diagnostics'], websocket_clients=len(server.clients), recording=rec.status()))
+
+    async def state(request):
+        return ok(snap())
+
+    async def controls(request):
+        s = snap()
+        return ok({k: s[k] for k in ('status', 'source', 'controls', 'raw', 'commands', 'age_ms', 'tick', 'seq')})
+
+    async def telemetry(request):
+        return ok(dict(sensors=snap()['telemetry']))
+
+    async def sensor(request):
+        name = request.match_info['sensor']
+        if not SENSOR.fullmatch(name):
+            return error(400, 'invalid_sensor', 'sensor names are 1-24 characters of A-Z a-z 0-9 _ -')
+        item = snap()['telemetry'].get(name)
+        if item is None:
+            return error(404, 'not_found', f'no sensor named {name}')
+        return ok(dict(name=name, **item))
+
+    async def channels(request):
+        return ok(dict(channels=snap()['channels']))
+
+    async def channel(request):
+        try:
+            n = int(request.match_info['n'])
+        except ValueError:
+            n = 0
+        if not 1 <= n <= 16:
+            return error(400, 'invalid_channel', 'channel must be a number from 1 to 16')
+        values = snap()['channels']
+        return ok(dict(channel=n, value=None if values is None else values[n-1]))
+
+    async def styles(request):
+        return ok([dict(id=i, name=n, blurb=b) for i, n, b in STYLE_INFO])
+
+    async def settings(request):
+        return ok(fx.merged())
+
+    def settings_write(action):
+        async def handler(request):
+            data = await json_body(request)
+            try:
+                action(data)
+            except ValueError as exc:
+                return error(400, 'invalid_settings', str(exc))
+            return ok(fx.merged())
+        return handler
+
+    async def settings_reset(request):
+        fx.reset()
+        return ok(fx.merged())
+
+    async def mapping(request):
+        return ok(fx.merged()['mapping'])
+
+    async def mapping_put(request):
+        data = await json_body(request)
+        try:
+            fx.replace_mapping(data)
+        except ValueError as exc:
+            return error(400, 'invalid_mapping', str(exc))
+        return ok(fx.merged()['mapping'])
+
+    def recorder_call(fn, status_ok=200):
+        async def handler(request):
+            try:
+                return await fn(request, status_ok)
+            except RecorderError as exc:
+                return error(STATUS_FOR.get(exc.code, 400), exc.code, exc.message)
+        return handler
+
+    async def recording(request, _):
+        return ok(rec.status())
+
+    async def recording_start(request, code):
+        body = await json_body(request, allow_empty=True)
+        unknown = set(body) - {'label'}
+        if unknown:
+            raise RecorderError('invalid_label', 'unknown field: ' + ', '.join(sorted(unknown)))
+        label = body.get('label')
+        if label is not None and not isinstance(label, str):
+            raise RecorderError('invalid_label', 'label must be a string')
+        return ok(rec.start(label), status=code)
+
+    async def recording_stop(request, _):
+        return ok(rec.stop())
+
+    async def recordings(request, _):
+        return ok(rec.list())
+
+    async def recording_file(request, _):
+        path = rec.path_for(request.match_info['name'])
+        return web.FileResponse(path, headers={'Content-Type': 'application/x-ndjson',
+                                               'Content-Disposition': f'attachment; filename="{path.name}"'})
+
+    async def recording_delete(request, _):
+        rec.delete(request.match_info['name'])
+        return web.Response(status=204)
+
+    async def recording_report(request, _):
+        report = analyze(rec.path_for(request.match_info['name']))
+        return web.Response(text=json.dumps(report, allow_nan=False), content_type='application/json')
+
+    spec_json = json.dumps(build())
+
+    async def openapi(request):
+        return web.Response(text=spec_json, content_type='application/json')
+
+    v1 = '/api/v1'
+    routes = [
+        ('GET', '/status', status), ('GET', '/state', state), ('GET', '/controls', controls),
+        ('GET', '/telemetry', telemetry), ('GET', '/telemetry/{sensor}', sensor),
+        ('GET', '/channels', channels), ('GET', '/channels/{n}', channel), ('GET', '/styles', styles),
+        ('GET', '/settings', settings),
+        ('PUT', '/settings', settings_write(fx.replace)), ('PATCH', '/settings', settings_write(fx.save)),
+        ('DELETE', '/settings', settings_reset),
+        ('GET', '/settings/mapping', mapping), ('PUT', '/settings/mapping', mapping_put),
+        ('GET', '/recording', recorder_call(recording)), ('POST', '/recording', recorder_call(recording_start, 201)),
+        ('DELETE', '/recording', recorder_call(recording_stop)),
+        ('GET', '/recordings', recorder_call(recordings)),
+        ('GET', '/recordings/{name}', recorder_call(recording_file)),
+        ('DELETE', '/recordings/{name}', recorder_call(recording_delete)),
+        ('GET', '/recordings/{name}/report', recorder_call(recording_report)),
+        ('GET', '/openapi.json', openapi),
+    ]
+    for method, path, handler in routes:
+        app.router.add_route(method, v1 + path, handler)
+
+    # Legacy aliases used by the bundled pages.
+    async def legacy_get(request):
+        return ok(fx.load(), headers={'Cache-Control': 'no-store'})
+
+    async def legacy_post(request):
+        data = await json_body(request)
+        try:
+            return ok(fx.save(data))
+        except ValueError as exc:
+            return error(400, 'invalid_settings', str(exc))
+
+    app.router.add_get('/api/state', state)
+    app.router.add_get('/api/fx-config', legacy_get)
+    app.router.add_post('/api/fx-config', legacy_post)

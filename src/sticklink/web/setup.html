@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Sticklink · Setup</title>
+  <style>
+    :root{color-scheme:dark}
+    body{margin:0;background:#0b1420;color:#e6eef7;font:14px/1.4 Arial,sans-serif}
+    main{max-width:1000px;margin:0 auto;padding:16px}
+    header{display:flex;gap:16px;align-items:baseline;flex-wrap:wrap}h1{font-size:16px;letter-spacing:2px;margin:0}
+    h2{font-size:13px;letter-spacing:1px;color:#9fb2c4;margin:18px 0 6px}
+    #conn{color:#50e0c1;font-size:12px;letter-spacing:1px}#saved{margin-left:auto;color:#50e0c1;font-size:12px}
+    #banner{margin:10px 0;padding:10px 12px;border-radius:8px;background:#33200f;border:1px solid #d98441;color:#ffd7a8}
+    .cols{display:flex;gap:24px;flex-wrap:wrap;margin-top:12px}.col{flex:1 1 380px;min-width:300px}
+    canvas{width:100%;max-width:380px;background:#101c2b;border-radius:10px;border:1px solid #2a3d52}
+    .row{display:grid;grid-template-columns:84px minmax(150px,1fr) auto auto;gap:6px 10px;align-items:center;margin:6px 0}
+    .row .meter{grid-column:2 / -1}.row b{font-size:12px;letter-spacing:1px}
+    select,button{background:#16273a;color:inherit;border:1px solid #4a6078;border-radius:4px;padding:4px 8px;font:inherit}
+    button{cursor:pointer}button:hover{border-color:#50e0c1}
+    .meter{position:relative;height:8px;border-radius:4px;background:#1b2b3d;overflow:hidden}
+    .meter i{position:absolute;top:0;bottom:0;background:#50e0c1}
+    .bar{display:grid;grid-template-columns:110px 1fr 46px;gap:8px;align-items:center;margin:4px 0;font-size:12px}
+    .bar em{font-style:normal;text-align:right;color:#9fb2c4}#bars{margin-top:10px;max-width:380px}
+    #mon{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:0 24px}
+    .lamps{display:flex;gap:8px;margin:8px 0}.lamp{padding:3px 10px;border-radius:5px;border:1px solid #556575;color:#adbac8;font-size:12px;letter-spacing:1px}
+    .lamp.on{background:#33200f;border-color:#d98441;color:#ffb875}.lamp.off{opacity:.4}
+    .hint{color:#9fb2c4;font-size:12px;margin:8px 0}.mode{display:flex;gap:8px;align-items:center;margin-top:8px}a{color:#50e0c1}
+  </style>
+  <script type="module" src="/assets/setup.js"></script>
+</head>
+<body></body>
+</html>

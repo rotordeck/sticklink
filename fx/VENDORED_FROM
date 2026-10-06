@@ -1,0 +1,3 @@
+rotordeck/stickcam @ ca82bf34c1fd1cb17f06181ed9383cda9c55418c
+src/render/{draw,style,layout}.ts copied verbatim; do not edit here (fix upstream in stickcam, then re-copy).
+src/track.ts and src/motion.ts here are type-only subsets of stickcam's files; LiveFeed (src/live.ts) fills them live.

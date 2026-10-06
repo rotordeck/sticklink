@@ -1,0 +1,16 @@
+{
+  "name": "sticklink-fx",
+  "private": true,
+  "type": "module",
+  "description": "Canvas overlay (stickcam renderer, live). Build output is committed to ../src/sticklink/web/stickfx.js",
+  "scripts": {
+    "build": "esbuild stickfx=src/index.ts setup=src/setup.ts --bundle --format=esm --target=es2022 --minify --outdir=../src/sticklink/web",
+    "typecheck": "tsc --noEmit -p .",
+    "test": "node --test test/"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "typescript": "^5.6.0",
+    "@types/node": "^22.0.0"
+  }
+}

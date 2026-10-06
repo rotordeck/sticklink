@@ -1,0 +1,44 @@
+# OBS setup
+
+Sticklink serves web pages; OBS shows them with its **Browser** source. The program must be running while you stream.
+
+## Add the overlay
+
+1. In **Sources** click **+** and choose **Browser**.
+2. **URL**: `http://127.0.0.1:8765/fx` (use `/overlay` for the plain panel; change the port if you started Sticklink with `--http-port`).
+3. Leave **Local file** off.
+4. **Width x Height**: **576 x 450** for the default size. Double-click the page in a normal browser to see the exact size for your
+   settings, shown in the panel.
+5. Tick **Use custom frame rate** and enter **60**. At OBS's default 30 fps the smooth trails look choppy.
+6. Leave the default custom CSS: the page is transparent, so no chroma key is needed.
+7. Turn off **Shutdown source when not visible** and **Refresh browser when scene becomes active**, so the connection stays up.
+8. OK, then position and scale the source in your scene.
+
+## Change the look from OBS
+
+Right-click the source, choose **Interact**, then double-click inside the window: the settings panel opens. Changes are
+saved by Sticklink itself, so you can also open `http://127.0.0.1:8765/fx` in any browser and change the settings there;
+the OBS source follows within about two seconds.
+
+If the overlay runs slightly ahead of your video, raise **Video delay (ms)** in the panel.
+
+## No "Browser" source in the list
+
+The browser source needs OBS's embedded Chromium (CEF), and not every build includes it.
+
+- **Windows and macOS**: the official OBS download includes it.
+- **Linux**: the official Flatpak (`com.obsproject.Studio`) includes it. Some distribution packages do not. On Arch and
+  derivatives the plain `obs-studio` package has no browser source; the AUR package `obs-studio-browser` replaces it with a
+  build that has one.
+
+## OBS crashes after the browser source appears (Linux, Wayland)
+
+Seen on Arch/CachyOS with OBS 32 and an AMD GPU: the browser engine's GPU process crashed repeatedly and took OBS down.
+Turning browser hardware acceleration off fixed it: **Settings, Advanced, "Enable browser source hardware acceleration"**
+off, or, with OBS closed, set `BrowserHWAccel=false` in `~/.config/obs-studio/global.ini`. Starting OBS through XWayland
+(`QT_QPA_PLATFORM=xcb obs`) is another thing to try. This costs some CPU for every browser source.
+
+## Without the browser source
+
+You can capture a normal browser window showing `/fx` with a window or screen capture. Capture cannot keep transparency,
+so the overlay would sit on a solid background; there is no built-in chroma-key background option yet.
