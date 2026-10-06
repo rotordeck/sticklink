@@ -20,6 +20,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 
 ROOT = Path(__file__).resolve().parent.parent
 CHECK = ROOT/'tests'/'browser'/'check.mjs'
+PERMALINK = ROOT/'tests'/'browser'/'permalink.mjs'
 NODE = shutil.which('node')
 CHROME = os.environ.get('CHROME') or next((shutil.which(n) for n in ('google-chrome-stable', 'google-chrome', 'chromium', 'chromium-browser') if shutil.which(n)), None)
 ENABLED = os.environ.get('STICKLINK_BROWSER_TESTS') == '1' and NODE and CHROME
@@ -105,6 +106,30 @@ class HudBrowserTests(unittest.TestCase):
                              env={**os.environ, 'CHROME': CHROME})
         self.assertEqual(run.returncode, 0, run.stderr)
         return json.loads(run.stdout.strip().splitlines()[-1])
+
+    def test_permanent_links(self):
+        """A plain URL saves to the server; a ?cfg= link reproduces its configuration, ignores what is saved and writes nothing."""
+        run = subprocess.run([NODE, str(PERMALINK), self.base], capture_output=True, text=True, timeout=180, env={**os.environ, 'CHROME': CHROME})
+        self.assertEqual(run.returncode, 0, run.stderr)
+        result = json.loads(run.stdout.strip().splitlines()[-1])
+        self.assertEqual(result['errors'], [])
+        for page in ('fx', 'hud'):
+            r = result[page]
+            self.assertTrue(r['plainLink0'].startswith(f'{self.base}/{page}?cfg=v1.'), f'{page}: the panel shows a permanent link')
+            self.assertEqual(len({r['plainLink0'], r['plainLink1'], r['plainLink2']}), 3, f'{page}: the link follows every change')
+            self.assertTrue(r['hrefHasNoQuery'] and r['addressBarUnchanged'], f'{page}: the address bar is never touched')
+            self.assertIn('saved on the server', r['plainNote'])
+            self.assertTrue(r['setupLinkStillThere'], f'{page}: the panel keeps its setup link')
+            # a plain page still saves (the last change is on the server)...
+            self.assertEqual(r['savedOnServer'] if page == 'fx' else r['savedOnServer']['layout'], 'inferno' if page == 'fx' else 'column')
+            # ...while a link page uses its own configuration, not the saved one, and never writes
+            self.assertEqual(r['pinnedField'], 'hacker' if page == 'fx' else 'row')
+            self.assertEqual(r['pinnedLink'], r['plainLink1'], f'{page}: opening a link and asking for its link gives the same link')
+            self.assertNotEqual(r['pinnedLinkAfter'], r['pinnedLink'], f'{page}: edits on a link page update the link')
+            self.assertTrue(r['serverUntouched'], f'{page}: a link page must not change the saved settings')
+            self.assertTrue(r['pinnedAddressUnchanged'])
+            self.assertIn('opened from a link', r['pinnedNote'])
+            self.assertIn('Not saved on the server', r['pinnedStatus'])
 
     def test_every_hud_page_renders_without_errors(self):
         api(self.base, '/api/v1/settings', 'PATCH', dict(hud=dict(map=dict(provider='none'))))

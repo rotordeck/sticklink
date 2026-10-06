@@ -3,6 +3,8 @@ import { computeLayout, DEFAULT_SETTINGS, type Settings } from './render/layout.
 import { createScene, renderFrame, type Scene } from './render/draw.ts';
 import { LiveFeed, rendererMode, type LiveFrame } from './live.ts';
 import { DEFAULTS, clean, type FxConfig } from './config.ts';
+import { PARAM, decodeConfig, permalink } from './permalink.ts';
+import { LINK_CSS, LINK_HTML, LinkRow } from './permalink-ui.ts';
 import { applyMapping } from './mapping.ts';
 // @ts-ignore plain JS module shared with the classic overlay
 import { StickLinkClient } from '../../src/sticklink/web/client.js';
@@ -27,6 +29,9 @@ export class StickFx extends HTMLElement {
   private lastState: any = null; private lastSession: unknown = null; private lastSampleT = -Infinity;
   private pendingT: number | undefined; private latest: ReturnType<typeof applyMapping> | null = null;
   private serverJson = ''; private poll: any; private saveTimer: any;
+  private editedAt = -Infinity; // when the user last changed a setting here: polled server settings must not overwrite a fresh edit
+  private pinned = false; // opened from a ?cfg= link: use exactly that, never touch the server's saved settings
+  private linkRow!: LinkRow;
 
   constructor() {
     super();
@@ -42,7 +47,7 @@ export class StickFx extends HTMLElement {
       input[type=range]{width:55%}.row{display:flex;gap:10px;flex-wrap:wrap}.row label{margin:2px 0;gap:4px}
       .blurb{color:#9fb2c4;font-size:11px;margin:-2px 0 6px}.hint{color:#9fb2c4;font-size:11px;margin-top:8px}
       button{margin-top:8px;background:#16273a;color:inherit;border:1px solid #4a6078;border-radius:4px;padding:4px 10px;font:inherit;cursor:pointer}
-      .status{color:#50e0c1}a{color:#50e0c1}
+      .status{color:#50e0c1}a{color:#50e0c1}${LINK_CSS}
       .badge{position:absolute;left:50%;top:6px;transform:translateX(-50%);padding:3px 12px;border-radius:6px;background:#ff3b3bd9;color:#fff;
         font:700 13px Arial,sans-serif;letter-spacing:2px;pointer-events:none}.badge[hidden]{display:none}
     </style>`;
@@ -54,9 +59,13 @@ export class StickFx extends HTMLElement {
 
   async connectedCallback() {
     const q = new URLSearchParams(location.search);
-    const seed = Object.fromEntries(q.entries());
-    this.cfg = clean(seed, DEFAULTS, STYLES);
-    await this.fetchConfig();
+    const link = decodeConfig(q.get(PARAM));
+    this.pinned = link !== null;
+    if (link) this.cfg = clean(link, DEFAULTS, STYLES); // a link is applied on the defaults, independent of what is saved
+    else {
+      this.cfg = clean(Object.fromEntries(q.entries()), DEFAULTS, STYLES);
+      await this.fetchConfig();
+    }
     this.buildPanel();
     this.rebuild();
     this.client = new StickLinkClient(this.cfg.delay);
@@ -64,7 +73,7 @@ export class StickFx extends HTMLElement {
     window.addEventListener('resize', this.onResize);
     document.addEventListener('dblclick', this.toggle);
     document.addEventListener('keydown', this.onKey);
-    this.poll = setInterval(() => this.fetchConfig().then((changed) => changed && this.apply()), 2000);
+    if (!this.pinned) this.poll = setInterval(() => { if (performance.now() - this.editedAt > 2500) void this.fetchConfig().then((changed) => changed && this.apply()); }, 2000);
     Promise.race([Promise.all(FONTS.map((f) => document.fonts.load(f))), new Promise((r) => setTimeout(r, 3000))])
       .catch(() => {}).finally(() => { this.ready = true; });
     this.raf = requestAnimationFrame(this.tick);
@@ -95,6 +104,7 @@ export class StickFx extends HTMLElement {
 
   private save() {
     clearTimeout(this.saveTimer);
+    if (this.pinned) { this.panel.querySelector('.status')!.textContent = 'Not saved on the server (opened from a link)'; return; }
     this.saveTimer = setTimeout(async () => {
       const status = this.panel.querySelector('.status')!;
       try {
@@ -179,8 +189,9 @@ export class StickFx extends HTMLElement {
       <label>Video delay (ms) <input type="number" name="delay" min="0" max="5000" step="10"></label>
       <label>Size (px) <input type="number" name="size" min="240" max="2160" step="10"></label>
       <div class="hint"><a href="/setup" target="_blank">Set up sticks, ARM and crash flip…</a></div>
-      <div class="hint"></div>
+      <div class="hint info"></div>${LINK_HTML}
       <button type="button" class="close">Close</button> <span class="status"></span>`;
+    this.linkRow = new LinkRow(this.panel);
     this.panel.addEventListener('input', () => this.readPanel());
     this.panel.addEventListener('change', () => this.readPanel());
     this.panel.querySelector('.close')!.addEventListener('click', () => { this.panel.hidden = true; });
@@ -193,8 +204,9 @@ export class StickFx extends HTMLElement {
     (['style', 'chaos', 'mode', 'delay', 'size'] as const).forEach((k) => set(k, c[k]));
     this.panel.querySelector('.blurb')!.textContent = presetById(c.style).blurb;
     this.panel.querySelector('.chaosv')!.textContent = c.chaos.toFixed(2);
+    this.updateLink();
     const tight = computeLayout({ ...DEFAULT_SETTINGS, crop: true, cropRef: c.size });
-    this.panel.querySelector('.hint')!.textContent = `Recommended OBS Browser Source size: ${tight.W} × ${tight.H} (any size works: the overlay centres itself). Double-click or Esc closes this panel. Changes save automatically.`;
+    this.panel.querySelector('.info')!.textContent = `Recommended OBS Browser Source size: ${tight.W} × ${tight.H} (any size works: the overlay centres itself). Double-click or Esc closes this panel. Changes save automatically.`;
   }
 
   private readPanel() {
@@ -202,7 +214,11 @@ export class StickFx extends HTMLElement {
       style: this.field('style').value, chaos: this.field('chaos').value, mode: this.field('mode').value,
       delay: this.field('delay').value, size: this.field('size').value,
     };
+    this.editedAt = performance.now();
     this.cfg = clean(raw, this.cfg, STYLES);
     this.apply(); this.save();
+    this.updateLink();
   }
+
+  private updateLink() { this.linkRow.update(permalink(location.origin, location.pathname, this.cfg, 'fx'), this.pinned); }
 }

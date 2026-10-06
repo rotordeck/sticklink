@@ -26,7 +26,8 @@ overlays, and records every session so you can check and reuse the data later.
   receiver tab. Press **Learn** and move a stick or switch to assign roll, pitch, yaw, throttle, ARM and Crash Flip, so a
   swapped or reversed stick is a ten-second fix.
 - **Double-click to configure**: style, effect strength, stick layout (modes 1-4), size and video delay, saved on the
-  server so an OBS source updates by itself.
+  server so an OBS source updates by itself. The panel also shows a **permanent link** for the current look: use it as a source's URL to pin
+  that source to its own configuration.
 - **Recordings**: one JSONL file per session, a `check-log` quality report (rate, gaps, lost records, channel ranges) and
   `replay` to play a session back through the overlay.
 - **REST API + Swagger UI** (`/docs`, works offline) and a WebSocket stream for your own tools.

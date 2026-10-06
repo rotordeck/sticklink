@@ -111,6 +111,21 @@ page, so refreshing the page (or the OBS source) resets it.
 
 ![Link, clean](img/hud-link-clean.png)
 
+## Permanent links
+
+The address stays plain (`/fx`, `/hud/gps`, ...) and shows your **saved** settings, exactly as before. To keep or share a specific look, open the
+settings panel (double-click) and copy the **link to this configuration** at its bottom. The field updates as you change settings; the browser's address
+bar never changes.
+
+- Opening such a link (`...?cfg=v1....`) reproduces exactly that configuration, whatever is saved on the server: it holds only what differs from the
+  defaults and is applied on top of the defaults.
+- A page opened from a link **does not write to the server**, so using someone else's link (or an old one) cannot overwrite your saved settings.
+  Changes you make there are local, and the link field follows them; copy it again to keep them.
+- An `/fx` link holds the stick-overlay settings and your stick assignment; a `/hud...` link holds the HUD settings and the assignment. Links are
+  versioned (`v1`), so they keep working.
+- A link is not secret: it is just your settings. It can be used in OBS as the Browser Source URL, which is the point: several sources can each
+  have their own look, independent of the saved settings.
+
 ## Classic overlay
 
 `/overlay` - a plain panel with two sticks, ARM/flip lamps and telemetry; 560 x 390.

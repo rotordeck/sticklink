@@ -16,7 +16,7 @@ pip install -e ".[dev]"
 | Python (protocol, state, log/replay, settings, REST API contract, security) | `python -m unittest discover -s tests` |
 | Overlay logic (live feed, mapping, learn detector, config) | `cd fx && npm test` |
 | Overlay type check | `cd fx && npm run typecheck` |
-| HUD in a real browser: every page, style and layout, and the map's tile requests (needs Chrome and Node 22+) | `STICKLINK_BROWSER_TESTS=1 python -m unittest tests.test_hud_browser` |
+| HUD in a real browser: every page, style and layout, the permanent links, and the map's tile requests (needs Chrome and Node 22+) | `STICKLINK_BROWSER_TESTS=1 python -m unittest tests.test_hud_browser` |
 | Radio script under a desktop Lua with a mocked EdgeTX (needs `lua`) | `python -m unittest tests.test_radio_script` |
 | DOM test of the classic overlay (optional, needs jsdom) | `JSDOM_PATH=/path/to/node_modules/jsdom node tests/test_components.cjs` |
 

@@ -21,6 +21,12 @@ Sticklink serves web pages; OBS shows them with its **Browser** source. The prog
 To place blocks yourself, add `/hud/link`, `/hud/battery` and `/hud/gps` as separate Browser Sources (any size; each block fills its source, centred),
 then move and resize them in your scene. The GPS block needs internet for the map tiles; without it the block shows the track only.
 
+## Different looks in different sources
+
+By default every source shows the settings saved on the server, so they all change together. To give a source its **own** look, open the settings
+panel, copy the *link to this configuration* and use it as that source's URL. A link source ignores the saved settings (see
+[permanent links](overlay-guide.md#permanent-links)).
+
 ## Change the look from OBS
 
 Right-click the source, choose **Interact**, then double-click inside the window: the settings panel opens. Changes are

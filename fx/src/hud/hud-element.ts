@@ -2,6 +2,8 @@
 import { DEFAULTS, clean, cleanHud, type FxConfig, type HudConfig } from '../config.ts';
 import { PRESETS, presetById } from '../render/style.ts';
 import { applyMapping } from '../mapping.ts';
+import { PARAM, decodeConfig, permalink } from '../permalink.ts';
+import { LINK_CSS, LINK_HTML, LinkRow } from '../permalink-ui.ts';
 import { drawBattery, drawGps, drawLink, drawStatus, type HudData, type RadioState } from './blocks.ts';
 import { layoutHud, layoutSingle, type Block } from './layout.ts';
 import { brackets, makeLook, scanlines } from './look.ts';
@@ -35,6 +37,9 @@ export class StickHud extends HTMLElement {
   private track: { lat: number; lon: number }[] = [];
   private lastTrackFetch = 0;
   private armedAt: number | null = null; private flight = 0; private wasArmed = false;
+  private editedAt = -Infinity; // when the user last changed a setting here: polled server settings must not overwrite a fresh edit
+  private pinned = false; // opened from a ?cfg= link: use exactly that, never touch the server's saved settings
+  private linkRow!: LinkRow;
   private formError = ''; // shown in the panel until the offending field is valid again
   private raf = 0; private ready = false; private serverJson = ''; private poll: any; private saveTimer: any;
 
@@ -50,7 +55,7 @@ export class StickHud extends HTMLElement {
       select,input[type=number],input[type=text]{background:#16273a;color:inherit;border:1px solid #4a6078;border-radius:4px;padding:3px 5px;font:inherit;max-width:62%}
       input[type=text]{width:62%}.row{display:flex;gap:10px;flex-wrap:wrap}.row label{margin:2px 0;gap:4px}
       .hint{color:#9fb2c4;font-size:11px;margin-top:8px}.status{color:#50e0c1}a{color:#50e0c1}
-      button{margin-top:8px;background:#16273a;color:inherit;border:1px solid #4a6078;border-radius:4px;padding:4px 10px;font:inherit;cursor:pointer}
+      button{margin-top:8px;background:#16273a;color:inherit;border:1px solid #4a6078;border-radius:4px;padding:4px 10px;font:inherit;cursor:pointer}${LINK_CSS}
     </style>`;
     this.panel.className = 'panel'; this.panel.hidden = true;
     root.append(this.canvas, this.panel);
@@ -59,14 +64,17 @@ export class StickHud extends HTMLElement {
 
   async connectedCallback() {
     this.block = blockFromPath(location.pathname);
-    await this.fetchConfig();
+    const link = decodeConfig(new URLSearchParams(location.search).get(PARAM));
+    this.pinned = link !== null;
+    if (link) this.cfg = clean(link, DEFAULTS, STYLES); // a link is applied on the defaults, independent of what is saved
+    else await this.fetchConfig();
     this.buildPanel();
     this.client = new StickLinkClient(this.cfg.delay);
     this.client.start();
     await this.fetchTrack();
     window.addEventListener('resize', this.resize); this.resize();
     document.addEventListener('dblclick', this.toggle); document.addEventListener('keydown', this.onKey);
-    this.poll = setInterval(() => this.fetchConfig().then((changed) => changed && this.syncPanel()), 2000);
+    if (!this.pinned) this.poll = setInterval(() => { if (performance.now() - this.editedAt > 2500) void this.fetchConfig().then((changed) => changed && this.syncPanel()); }, 2000);
     Promise.race([Promise.all(FONTS.map((f) => document.fonts.load(f))), new Promise((r) => setTimeout(r, 3000))]).catch(() => {}).finally(() => { this.ready = true; });
     this.raf = requestAnimationFrame(this.frame);
   }
@@ -98,6 +106,7 @@ export class StickHud extends HTMLElement {
 
   private save() {
     clearTimeout(this.saveTimer);
+    if (this.pinned) { this.panel.querySelector('.status')!.textContent = this.formError || 'Not saved on the server (opened from a link)'; return; }
     this.saveTimer = setTimeout(async () => {
       const status = this.panel.querySelector('.status')!;
       try {
@@ -192,7 +201,8 @@ export class StickHud extends HTMLElement {
       <label>Zoom <select name="zoom"><option value="auto">auto (fit track)</option>${[12, 13, 14, 15, 16, 17, 18].map((z) => `<option value="${z}">${z}</option>`).join('')}</select></label>
       <label>Follow the quad <input type="checkbox" name="follow"></label>
       <button type="button" class="clear">Clear GPS track</button> <button type="button" class="close">Close</button> <span class="status"></span>
-      <div class="hint"></div>`;
+      <div class="hint info"></div>${LINK_HTML}`;
+    this.linkRow = new LinkRow(this.panel);
     this.panel.addEventListener('input', () => this.readPanel());
     this.panel.addEventListener('change', () => this.readPanel());
     this.panel.querySelector('.close')!.addEventListener('click', () => { this.panel.hidden = true; });
@@ -208,7 +218,8 @@ export class StickHud extends HTMLElement {
     set('provider', h.map.provider); set('customUrl', h.map.customUrl); set('attribution', h.map.attribution); set('zoom', String(h.map.zoom));
     (['link', 'battery', 'gps', 'status'] as const).forEach((b) => { this.field(`block-${b}`).checked = h.blocks[b]; });
     this.field('follow').checked = h.map.follow;
-    this.panel.querySelector('.hint')!.innerHTML = `This is page <b>${location.pathname}</b>. Pages: /hud, /hud/link, /hud/battery, /hud/gps. Any source size works; 1920 × 1080 for the combined HUD. ` +
+    this.updateLink();
+    this.panel.querySelector('.info')!.innerHTML = `This is page <b>${location.pathname}</b>. Pages: /hud, /hud/link, /hud/battery, /hud/gps. Any source size works; 1920 × 1080 for the combined HUD. ` +
       `Map tiles load from the internet: the tile server sees the area you view, and the map shows its credit. Double-click or Esc closes this panel.`;
   }
 
@@ -220,6 +231,7 @@ export class StickHud extends HTMLElement {
       units: { speed: f('speed').value, alt: f('alt').value },
       map: { provider: f('provider').value, customUrl: f('customUrl').value.trim(), attribution: f('attribution').value, zoom: f('zoom').value, follow: f('follow').checked },
     };
+    this.editedAt = performance.now();
     const next: HudConfig = cleanHud(raw, this.cfg.hud, STYLES);
     // a custom URL that does not validate is dropped by cleanHud; tell the user instead of silently ignoring it
     const bad = raw.map.customUrl && next.map.customUrl !== raw.map.customUrl;
@@ -227,5 +239,8 @@ export class StickHud extends HTMLElement {
     this.panel.querySelector('.status')!.textContent = this.formError;
     this.cfg = { ...this.cfg, hud: next };
     if (!bad) this.save();
+    this.updateLink();
   }
+
+  private updateLink() { this.linkRow.update(permalink(location.origin, location.pathname, this.cfg, 'hud'), this.pinned); }
 }

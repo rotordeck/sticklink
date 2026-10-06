@@ -11,6 +11,8 @@ First packaged version.
 - Session recordings (JSONL), `replay`, `check-log` quality reports.
 - REST API with OpenAPI spec and offline Swagger UI (`/docs`).
 - The effects overlay fills any Browser Source size and keeps the gimbals centered in it.
+- Permanent links: the settings panel shows a copyable `?cfg=` link for the current configuration (the address bar never changes). A link page uses exactly
+  that configuration and does not write to the server; plain URLs keep using the saved settings.
 - Telemetry HUD (`/hud`, `/hud/link`, `/hud/battery`, `/hud/gps`): Link, Battery, GPS and Status blocks in the stickcam styles, three layouts, and a GPS map
   with live track, home marker and distance (OpenStreetMap tiles by default, switchable, with a track-only fallback).
 - The radio script forwards a broad sensor list (round-robin, per-sensor failure isolation) and the GPS position; new `G` protocol record; sensor names may contain `%`.
