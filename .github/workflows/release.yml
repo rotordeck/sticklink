@@ -118,3 +118,22 @@ jobs:
           flags=""
           case "$GITHUB_REF_NAME" in *-*) flags="--prerelease" ;; esac
           gh release create "$GITHUB_REF_NAME" release/* --title "Sticklink ${GITHUB_REF_NAME#v}" --notes-file notes.md $flags
+
+  pypi:
+    name: Publish to PyPI (uvx / pip)
+    # After the GitHub release, because a PyPI upload can never be replaced. Needs the one-time
+    # trusted-publisher setup described in docs/development.md. Pre-release tags (v1.0.0-rc1) are skipped.
+    if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-')
+    needs: [publish]
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/sticklink/
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: python-package
+          path: dist
+      - uses: pypa/gh-action-pypi-publish@release/v1

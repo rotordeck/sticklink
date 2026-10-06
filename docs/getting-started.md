@@ -16,7 +16,7 @@ the README and the third-party notices. The program carries its own Python; noth
 `SHA256SUMS.txt` on the release page lets you check the downloads.
 
 **Python package.** Every release also has `sticklink-<version>-py3-none-any.whl` and a source package (`.tar.gz`). With
-Python 3.10 or newer: `pip install sticklink-<version>-py3-none-any.whl`. From a checkout: `pip install .`.
+Python 3.10 or newer: `uvx sticklink run --demo` runs it without installing (needs [uv](https://docs.astral.sh/uv/)); `pip install sticklink` installs it. Or `pip install sticklink-<version>-py3-none-any.whl`. From a checkout: `pip install .`.
 
 ### First start on macOS and Windows (unsigned builds)
 

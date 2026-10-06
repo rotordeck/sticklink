@@ -55,13 +55,17 @@ platform is built on its own CI runner. After building, reinstall the editable c
 | Workflow | Runs on | Does |
 |---|---|---|
 | `.github/workflows/ci.yml` | every push and pull request | Python tests on Linux, Windows and macOS (Python 3.10 and 3.13); overlay tests, type check and a check that the committed bundles are up to date |
-| `.github/workflows/release.yml` | tags `v*`, or run by hand | builds the wheel and source package, and the PyInstaller binaries for Linux (x86-64), Windows (x86-64), macOS (Apple Silicon and Intel); smoke-tests each binary; on a tag, attaches everything with `SHA256SUMS.txt` to a GitHub Release |
+| `.github/workflows/release.yml` | tags `v*`, or run by hand | builds the wheel and source package, and the PyInstaller binaries for Linux (x86-64), Windows (x86-64), macOS (Apple Silicon and Intel); smoke-tests each binary; on a tag, attaches everything with `SHA256SUMS.txt` to a GitHub Release, then uploads the wheel and source package to PyPI (so `uvx sticklink` works) |
 
 ## Releasing
 
 1. Update `__version__` in `src/sticklink/__init__.py` and `CHANGELOG.md`; commit to `main`.
 2. `git tag v0.1.0 && git push origin v0.1.0` (the tag must equal `v` + `__version__`; the workflow checks it).
 3. The release workflow builds, tests the binaries and publishes the release. Tags with a `-` (`v0.2.0-rc1`) are marked pre-release.
+
+**One-time PyPI setup** (the first upload fails until this is done): on pypi.org, *Your projects, Publishing, Add a pending publisher*:
+project `sticklink`, owner `rotordeck`, repository `sticklink`, workflow `release.yml`, environment `pypi`. In GitHub, *Settings, Environments*,
+create `pypi` (optionally with required reviewers). No API token is stored anywhere. Pre-release tags are not uploaded.
 
 To try the pipeline without releasing: *Actions, Release, Run workflow*. Builds are attached to the run as artifacts.
 

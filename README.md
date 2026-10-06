@@ -53,7 +53,8 @@ overlays, and records every session so you can check and reuse the data later.
 5. **Add it to OBS** as a Browser Source with the URL `http://127.0.0.1:8765/fx`, size 576x450, 60 fps
    ([OBS setup](docs/obs-setup.md)). Double-click the page (in OBS: right-click, *Interact*) to change the look.
 
-Prefer Python? `pip install sticklink-<version>-py3-none-any.whl` (from the release page), or from a checkout
+Prefer Python? Once published on PyPI: `uvx sticklink run --demo` (no install, needs [uv](https://docs.astral.sh/uv/)) or
+`pip install sticklink`. Or `pip install sticklink-<version>-py3-none-any.whl` (from the release page), or from a checkout
 `pip install .`; then run `sticklink ...`.
 
 ## Pages and commands
