@@ -19,7 +19,7 @@ class Service:
 
     def __init__(self, http_port=8765, **server_options):
         self.http_port = http_port
-        self.server_options = server_options  # e.g. fx_config=, scene_store=, plugin_store= (tests keep them out of the real config)
+        self.server_options = server_options  # e.g. fx_config=, scene_store=, theme_store= (tests keep them out of the real config)
         self.pipeline = None
         self._thread = None
         self._loop = None

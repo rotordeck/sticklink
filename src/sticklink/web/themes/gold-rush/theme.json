@@ -1,0 +1,10 @@
+{
+  "name": "Gold Rush", "author": "Sticklink", "version": "1.0", "api": 1, "base": "neon",
+  "description": "Black and gold: square plates, warm glow, bold trails.",
+  "style": {
+    "frame": "square", "plate": "rgba(20,12,0,0.55)", "ring": "#ffc933", "ringW": 0.045, "cross": "rgba(255,201,51,0.3)", "grid": 2,
+    "dot": "#fff1b8", "dotRing": "#ffc933", "hot": "#ff7b00", "glow": 0.45, "bloom": 0.9, "trail": 0.5, "trailW": 0.15,
+    "sparks": 0.6, "sparkColors": ["#ffffff", "#fff1b8", "#ffc933", "#ff7b00"], "shock": 0.6,
+    "textColor": "#ffc933", "textStroke": "#3b2400", "popups": true, "thrBar": true
+  }
+}

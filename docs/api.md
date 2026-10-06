@@ -16,7 +16,7 @@ is at `/api/v1/openapi.json`. A test checks that every route is in that descript
 | | `GET /api/v1/channels`, `/channels/{n}` | Mixer outputs CH1-CH16, or one (1-16) |
 | | `GET /api/v1/gps` | Position, home, distance and bearing from home, fix state |
 | | `GET`, `DELETE /api/v1/gps/track` | The flown track (thinned to one point per 2 m, at most 5000); forget track and home |
-| | `GET /api/v1/plugins` | Installed visualiser plugins ([plugins](plugins.md)) |
+| | `GET /api/v1/themes` | Installed overlay themes ([themes](themes.md)) |
 | Settings | `GET /api/v1/styles` | The overlay styles |
 | | `GET`, `PUT`, `PATCH`, `DELETE /api/v1/settings` | Read; replace everything; change some; reset to defaults |
 | | `GET`, `PUT /api/v1/settings/mapping` | Which inputs drive roll, pitch, yaw, throttle, ARM, Crash Flip |

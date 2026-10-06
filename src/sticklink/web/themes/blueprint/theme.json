@@ -1,0 +1,10 @@
+{
+  "name": "Blueprint", "author": "Sticklink", "version": "1.0", "api": 1, "base": "minimal",
+  "description": "Technical drawing: pale blue lines on a blueprint grid, numeric readout.",
+  "style": {
+    "frame": "brackets", "plate": "rgba(10,40,90,0.55)", "ring": "#bfe3ff", "ringW": 0.03, "cross": "rgba(191,227,255,0.35)", "grid": 5,
+    "dot": "#ffffff", "dotRing": "#7cc4ff", "dotShape": "square", "dotR": 0.08, "trail": 0.35, "trailW": 0.05, "glow": 0.1,
+    "readout": true, "textColor": "#bfe3ff", "textStroke": "rgba(5,20,50,0.9)",
+    "font": "{px}px 'Courier New', monospace", "popups": true, "popupStyle": "terminal"
+  }
+}

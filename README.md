@@ -30,7 +30,7 @@ overlays, and records every session so you can check and reuse the data later.
   that source to its own configuration.
 - **Scene switching** (`/modes`): a Betaflight-style Modes page for your **OBS scenes**: give each scene ranges on a switch channel, sort them so the
   upper scene wins, and OBS follows your switches (via OBS's built-in WebSocket). Off until you turn it on, and it never acts on stale radio data.
-- **Visualiser plugins** (`/viz`): write your own Winamp-style visualiser as a small canvas script, or install one from a friend (`sticklink plugin install`). Three are included. They run sandboxed, without network access. See the [plugin guide](https://github.com/rotordeck/sticklink/blob/main/docs/plugins.md).
+- **Themes**: add your own looks to the overlay and HUD with a small `.json` file (colours, frame, glow, trails, popup texts, fonts), or install one from a friend (`sticklink theme install`). Data only, nothing runs. See the [theme guide](https://github.com/rotordeck/sticklink/blob/main/docs/themes.md).
 - **Recordings**: one JSONL file per session, a `check-log` quality report (rate, gaps, lost records, channel ranges) and
   `replay` to play a session back through the overlay.
 - **REST API + Swagger UI** (`/docs`, works offline) and a WebSocket stream for your own tools.
@@ -66,7 +66,6 @@ Prefer Python? Once published on PyPI: `uvx sticklink run --demo` (no install, n
 | `/fx` | Effects overlay for OBS (double-click for settings) |
 | `/hud`, `/hud/link`, `/hud/battery`, `/hud/gps` | Telemetry HUD (combined, or one block per page) |
 | `/setup` | Receiver screen: 3D quad, channel monitor, learn-by-moving assignment |
-| `/viz`, `/viz/<id>` | Visualiser gallery, and one visualiser plugin as its own page for OBS |
 | `/modes` | Pick which OBS scene a switch selects (ranges per scene, sorted by priority) |
 | `/overlay` | The plain panel with two sticks, ARM/flip lamps and telemetry |
 | `/docs` | Swagger UI for the REST API (spec at `/api/v1/openapi.json`) |
@@ -87,7 +86,7 @@ More in [docs/cli.md](https://github.com/rotordeck/sticklink/blob/main/docs/cli.
 | [OBS setup](https://github.com/rotordeck/sticklink/blob/main/docs/obs-setup.md) | Browser source, Linux/Wayland notes |
 | [Overlay guide](https://github.com/rotordeck/sticklink/blob/main/docs/overlay-guide.md) | `/fx`, `/setup`, the classic overlay, settings and URL options |
 | [Scene switching](https://github.com/rotordeck/sticklink/blob/main/docs/scenes.md) | `/modes`: switch OBS scenes from radio switches |
-| [Visualiser plugins](https://github.com/rotordeck/sticklink/blob/main/docs/plugins.md) | Write and install your own visualisers |
+| [Themes](https://github.com/rotordeck/sticklink/blob/main/docs/themes.md) | Make and install your own overlay looks |
 | [CLI reference](https://github.com/rotordeck/sticklink/blob/main/docs/cli.md) | All commands and options |
 | [REST API](https://github.com/rotordeck/sticklink/blob/main/docs/api.md) | Endpoints, examples, security model |
 | [Protocol and log format](https://github.com/rotordeck/sticklink/blob/main/docs/protocol.md) | DDLOG v1, the JSONL recording format |

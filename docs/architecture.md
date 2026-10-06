@@ -16,7 +16,7 @@ radio (DDSTK.lua) --USB serial--> Source --> Pipeline --> OverlayServer --WebSoc
 | `server.py`, `api.py`, `openapi.py` | aiohttp app: pages, WebSocket, REST API, Host guard, the OpenAPI document |
 | `geo.py` | Distance and bearing for the GPS block |
 | `obs.py` | A small obs-websocket v5 client: scenes, current scene, switching; reconnects by itself |
-| `plugins.py` | Finds, validates and installs visualiser plugins (folders with `plugin.json` + a canvas script); safe zip extraction, file lookup that cannot leave the plugin folder |
+| `themes.py` | Finds, validates and installs overlay themes (data only: a `.json` or a folder/zip with fonts); strict checks on every value, safe zip extraction |
 | `service.py`, `gui.py` | The bridge in a background thread, and the small tkinter window around it |
 | `scenes.py` | The scene-mode store (private file, validation) and `SceneEngine`: channel ranges to scene switches, with debounce, priority and safety rules |
 | `fxconfig.py` | Validated, atomically written overlay settings and defaults (including the HUD and map settings) |

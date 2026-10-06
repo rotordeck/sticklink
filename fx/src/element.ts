@@ -1,4 +1,5 @@
-import { PRESETS, presetById } from './render/style.ts';
+import { PRESETS, presetById, STYLE_IDS as STYLES } from './render/style.ts';
+import { loadThemes } from './themes.ts';
 import { computeLayout, DEFAULT_SETTINGS, type Settings } from './render/layout.ts';
 import { createScene, renderFrame, type Scene } from './render/draw.ts';
 import { LiveFeed, rendererMode, type LiveFrame } from './live.ts';
@@ -12,7 +13,6 @@ import { StickLinkClient } from '../../src/sticklink/web/client.js';
 const FPS = 60;
 const GIMBAL = 0.17; // gimbal box as a fraction of the reference size (stickcam's layout)
 const FONTS = ['16px Bungee', 'italic 900 16px Orbitron', '700 16px Fredoka', '16px VT323'];
-const STYLES = PRESETS.map((p) => p.id);
 
 export class StickFx extends HTMLElement {
   private cfg: FxConfig = { ...DEFAULTS };
@@ -58,6 +58,7 @@ export class StickFx extends HTMLElement {
   }
 
   async connectedCallback() {
+    await loadThemes(); // before the first clean(): a saved theme id must be known
     const q = new URLSearchParams(location.search);
     const link = decodeConfig(q.get(PARAM));
     this.pinned = link !== null;

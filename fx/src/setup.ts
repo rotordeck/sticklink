@@ -1,5 +1,6 @@
 // /setup: the receiver screen. Live model + bars, channel monitor, and mapping with "learn by moving it".
-import { PRESETS } from './render/style.ts';
+import { STYLE_IDS as STYLES } from './render/style.ts';
+import { loadThemes } from './themes.ts';
 import { DEFAULTS, clean, type FxConfig } from './config.ts';
 import { drawDrone } from './drone3d.ts';
 import {
@@ -9,7 +10,6 @@ import {
 // @ts-ignore plain JS module shared with the overlays
 import { StickLinkClient } from '../../src/sticklink/web/client.js';
 
-const STYLES = PRESETS.map((p) => p.id);
 const PROMPT: Record<AxisName, string> = {
   roll: 'Push the ROLL stick fully RIGHT and hold it',
   pitch: 'Push the PITCH stick fully UP (forward) and hold it',
@@ -32,6 +32,7 @@ let saveTimer: any, yawAngle = 0, spin = 0, last = performance.now();
 const client = new StickLinkClient(0);
 
 async function load() {
+  await loadThemes();
   try { cfg = clean(await (await fetch('/api/fx-config', { cache: 'no-store' })).json(), DEFAULTS, STYLES); } catch { /* defaults */ }
 }
 function save() {

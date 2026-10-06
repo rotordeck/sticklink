@@ -18,7 +18,7 @@ from sticklink.config import Config
 from sticklink.fxconfig import DEFAULTS, STYLE_INFO, STYLES, FxConfigStore
 from sticklink.openapi import build
 from sticklink.pipeline import Pipeline
-from sticklink.plugins import PluginStore
+from sticklink.themes import ThemeStore
 from sticklink.recorder import Recorder
 from sticklink.scenes import SceneStore
 from sticklink.server import OverlayServer
@@ -64,7 +64,7 @@ class ApiCase(unittest.TestCase):
             with tempfile.TemporaryDirectory() as tmp:
                 pipe = Pipeline(Config())
                 server = OverlayServer(pipe, IdleSource(), fx_config=FxConfigStore(Path(tmp)/'fx.json'),
-                                       recorder=Recorder(pipe, Path(tmp)/'rec', source='test'), scene_store=SceneStore(Path(tmp)/'scenes.json'), plugin_store=PluginStore(Path(tmp)/'plugins'))
+                                       recorder=Recorder(pipe, Path(tmp)/'rec', source='test'), scene_store=SceneStore(Path(tmp)/'scenes.json'), theme_store=ThemeStore(Path(tmp)/'themes'))
                 if feed:
                     pipe.connection(True)
                     pipe.accept('H,1,DDRAW,0')
@@ -107,7 +107,7 @@ class ContractTests(ApiCase):
     def test_get_responses_match_their_schemas_live_and_idle(self):
         paths = ['/api/v1/status', '/api/v1/state', '/api/v1/controls', '/api/v1/telemetry', '/api/v1/channels',
                  '/api/v1/styles', '/api/v1/settings', '/api/v1/settings/mapping', '/api/v1/recording',
-                 '/api/v1/recordings', '/api/v1/plugins', '/api/state', '/api/fx-config']
+                 '/api/v1/recordings', '/api/v1/themes', '/api/state', '/api/fx-config']
         async def scenario(client, server, tmp):
             for path in paths:
                 await self.call(client, 'GET', path, spec_path=path)
@@ -184,7 +184,11 @@ class SettingsTests(ApiCase):
     def test_styles_match_the_overlay(self):
         async def scenario(client, server, tmp):
             styles = await self.call(client, 'GET', '/api/v1/styles', '/api/v1/styles')
-            self.assertEqual([s['id'] for s in styles], list(STYLES))
+            self.assertEqual([s['id'] for s in styles if s['builtin']], list(STYLES))
+            self.assertEqual([s['id'] for s in styles if not s['builtin']], ['blueprint', 'gold-rush'])  # the shipped example themes
+            await self.call(client, 'PATCH', '/api/v1/settings', json=dict(style='gold-rush'))
+            await self.call(client, 'PATCH', '/api/v1/settings', status=400, json=dict(style='not-installed'))
+            await self.call(client, 'PATCH', '/api/v1/settings', status=400, json=dict(hud=dict(style='not-installed')))
             ts = (ROOT/'fx/src/render/style.ts').read_text()
             self.assertEqual(re.findall(r"id: '(\w+)', name: '([^']+)'", ts), [(i, n) for i, n, _ in STYLE_INFO])
         self.run_api(scenario)

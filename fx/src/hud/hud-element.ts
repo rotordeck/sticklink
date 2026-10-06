@@ -1,6 +1,7 @@
 // <stick-hud>: the Link / Battery / GPS HUD. One page for the combined HUD (/hud) and one per block (/hud/link, /battery, /gps).
 import { DEFAULTS, clean, cleanHud, type FxConfig, type HudConfig } from '../config.ts';
-import { PRESETS, presetById } from '../render/style.ts';
+import { PRESETS, presetById, STYLE_IDS as STYLES } from '../render/style.ts';
+import { loadThemes } from '../themes.ts';
 import { applyMapping } from '../mapping.ts';
 import { PARAM, decodeConfig, permalink } from '../permalink.ts';
 import { LINK_CSS, LINK_HTML, LinkRow } from '../permalink-ui.ts';
@@ -13,7 +14,6 @@ import { TileMap } from './map.ts';
 // @ts-ignore plain JS module shared with the other overlays
 import { StickLinkClient } from '../../../src/sticklink/web/client.js';
 
-const STYLES = PRESETS.map((p) => p.id);
 const FONTS = ['16px Bungee', 'italic 900 16px Orbitron', '700 16px Fredoka', '16px VT323'];
 const DRAW: Record<Block, (ctx: CanvasRenderingContext2D, look: ReturnType<typeof makeLook>, d: HudData) => void> = {
   link: drawLink, battery: drawBattery, gps: drawGps, status: drawStatus,
@@ -63,6 +63,7 @@ export class StickHud extends HTMLElement {
   }
 
   async connectedCallback() {
+    await loadThemes();
     this.block = blockFromPath(location.pathname);
     const link = decodeConfig(new URLSearchParams(location.search).get(PARAM));
     this.pinned = link !== null;

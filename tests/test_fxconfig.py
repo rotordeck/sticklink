@@ -35,7 +35,7 @@ class ValidateTests(unittest.TestCase):
                 validate(dict(mapping=bad))
 
     def test_rejects_bad_values_and_ignores_unknown_keys(self):
-        for bad in [dict(style='nope'), dict(chaos=3), dict(chaos='1'), dict(chaos=True),
+        for bad in [dict(style='No Such Style!'), dict(chaos=3), dict(chaos='1'), dict(chaos=True),
                     dict(mode=5), dict(delay=-1), dict(invert=['bogus']),
                     dict(size=10), dict(chaos=float('nan')), [], 'x']:
             with self.subTest(bad=bad), self.assertRaises(ValueError):

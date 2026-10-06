@@ -15,6 +15,11 @@ STYLE_INFO = (
     ('hacker', '80s Cyberpunk Hacker', 'Green phosphor terminal, glyph rain, glitches'),
 )
 STYLES = tuple(s[0] for s in STYLE_INFO)
+THEME_ID = re.compile(r'[a-z0-9][a-z0-9_-]{0,39}')  # installed themes (see themes.py) are valid styles too; the pages fall back if one is gone
+
+
+def known_style(value):
+    return isinstance(value, str) and (value in STYLES or bool(THEME_ID.fullmatch(value)))
 DEFAULTS = dict(
     style='neon', chaos=1.0, mode=2, delay=0, invert=[], size=1080,
     mapping=dict(roll=dict(src='in:roll', rev=False), pitch=dict(src='in:pitch', rev=False),
@@ -82,7 +87,7 @@ def _hud(data):
         raise ValueError('hud must be an object')
     out = {}
     if 'style' in data:
-        if data['style'] is not None and data['style'] not in STYLES:
+        if data['style'] is not None and not known_style(data['style']):
             raise ValueError('unknown hud style')
         out['style'] = data['style']
     if 'layout' in data:
@@ -139,7 +144,7 @@ def validate(data):
         raise ValueError('object required')
     out = {}
     if 'style' in data:
-        if data['style'] not in STYLES:
+        if not known_style(data['style']):
             raise ValueError('unknown style')
         out['style'] = data['style']
     if 'chaos' in data:

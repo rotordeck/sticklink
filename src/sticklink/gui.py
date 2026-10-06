@@ -6,12 +6,12 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
 from . import __version__
-from .plugins import PluginError, PluginStore
+from .themes import ThemeError, ThemeStore
 from .service import Service
 
 DEMO = 'Demo (no radio)'
 PAGES = (('Overlay for OBS', '/fx'), ('Setup', '/setup'), ('Scene switching', '/modes'),
-         ('Telemetry HUD', '/hud'), ('Visualisers', '/viz'), ('API docs', '/docs'))
+         ('Telemetry HUD', '/hud'), ('API docs', '/docs'))
 COLOURS = {'off': '#888888', 'wait': '#d98e04', 'ok': '#1a9b3c', 'bad': '#c0392b'}
 
 
@@ -67,8 +67,8 @@ class Window:
             self.page_buttons.append(b)
         extra = ttk.Frame(frame)
         extra.grid(row=7, column=0, columnspan=2, sticky='w', pady=(8, 0))
-        ttk.Button(extra, text='Add visualiser plugin...', command=self.add_plugin).grid(row=0, column=0, padx=(0, 4))
-        ttk.Button(extra, text='Plugins folder', command=self.open_plugins).grid(row=0, column=1)
+        ttk.Button(extra, text='Add theme...', command=self.add_theme).grid(row=0, column=0, padx=(0, 4))
+        ttk.Button(extra, text='Themes folder', command=self.open_themes).grid(row=0, column=1)
         self.refresh()
         self.tick()
         root.protocol('WM_DELETE_WINDOW', self.close)
@@ -93,25 +93,25 @@ class Window:
                                      'Is Sticklink already running (another window or a terminal)?')
         self.tick(once=True)
 
-    def add_plugin(self):
-        source = filedialog.askopenfilename(title='Choose a plugin (.zip or .js)', filetypes=[('Plugin', '*.zip *.js'), ('All files', '*')])
+    def add_theme(self):
+        source = filedialog.askopenfilename(title='Choose a theme (.zip or .json)', filetypes=[('Theme', '*.zip *.json'), ('All files', '*')])
         if not source:
             return
-        store = (self.service.server_options.get('plugin_store') or PluginStore())
+        store = (self.service.server_options.get('theme_store') or ThemeStore())
         try:
             try:
                 name = store.install(source)
-            except PluginError as exc:
+            except ThemeError as exc:
                 if 'already installed' not in str(exc) or not messagebox.askyesno('Sticklink', f'{exc}\n\nReplace it?'):
                     raise
                 name = store.install(source, replace=True)
-        except PluginError as exc:
-            messagebox.showerror('Sticklink', f'Cannot install this plugin:\n{exc}')
+        except ThemeError as exc:
+            messagebox.showerror('Sticklink', f'Cannot install this theme:\n{exc}')
             return
-        messagebox.showinfo('Sticklink', f'Installed "{name}". Open Visualisers to see it.')
+        messagebox.showinfo('Sticklink', f'Installed "{name}". Pick it as the style in the overlay settings (double-click the overlay).')
 
-    def open_plugins(self):
-        store = (self.service.server_options.get('plugin_store') or PluginStore())
+    def open_themes(self):
+        store = (self.service.server_options.get('theme_store') or ThemeStore())
         store.user_dir.mkdir(parents=True, exist_ok=True)
         webbrowser.open(store.user_dir.as_uri())
 

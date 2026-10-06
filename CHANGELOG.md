@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Visualiser plugins: a gallery at `/viz`, one page per plugin (`/viz/<id>`) for OBS, `sticklink plugin install|list|remove|path`, an "Add visualiser plugin" button in the window, `GET /api/v1/plugins`. Plugins are small canvas scripts that receive sticks, switches and telemetry; they run in a sandboxed frame with no network access. Starfield, Neon tunnel and Phosphor scope are included. See `docs/plugins.md`.
+- Themes: add your own looks to the stick overlay and the HUD with a data-only `.json` (or folder/zip with fonts). `sticklink theme install|list|remove|path`, an "Add theme" button in the window, `GET /api/v1/themes`. Gold Rush and Blueprint are included. See `docs/themes.md`.
 - The window no longer lists the built-in serial ports (`ttyS0`...) as radios.
 
 ## 0.1.1 (2026-10-06)

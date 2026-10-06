@@ -110,3 +110,25 @@ export const PRESETS: Preset[] = [
 ];
 
 export const presetById = (id: string) => PRESETS.find((p) => p.id === id) ?? PRESETS[0];
+
+// ---- Themes (installed by the user, see docs/themes.md): data that restyles a built-in preset ----
+export interface ThemeData {
+  id: string; name: string; description?: string; base?: string; style?: Partial<Style>; error?: string | null;
+  fonts?: { family: string; url: string }[];
+}
+
+const CORE_COUNT = PRESETS.length;
+/** Ids a saved setting may name: the built-in presets plus the installed themes. Updated in place by registerThemes. */
+export const STYLE_IDS: string[] = PRESETS.map((p) => p.id);
+
+/** Replace the registered themes (earlier ones are dropped). Built-in ids can never be taken; broken themes are skipped. */
+export function registerThemes(themes: ThemeData[]): void {
+  PRESETS.length = CORE_COUNT;
+  for (const t of themes) {
+    if (t.error || !t.id || PRESETS.some((p) => p.id === t.id)) continue;
+    const base = presetById(t.base ?? 'clean').style;
+    PRESETS.push({ id: t.id, name: t.name, blurb: t.description ?? '', style: { ...base, ...(t.style ?? {}), labelMap: { ...(t.style?.labelMap ?? {}) } } });
+  }
+  STYLE_IDS.length = 0;
+  STYLE_IDS.push(...PRESETS.map((p) => p.id));
+}

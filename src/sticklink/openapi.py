@@ -2,6 +2,8 @@
 from . import __version__
 from .fxconfig import DEFAULTS, HUD_LAYOUTS, MAP_PROVIDERS, STYLES
 
+STYLE_PATTERN = '^[a-z0-9][a-z0-9_-]{0,39}$'  # a built-in style or an installed theme id
+
 CHANNEL = dict(type='integer', minimum=-2048, maximum=2048, description='Raw channel value, normally -1024..1024')
 SRC = dict(type='string', pattern=r'^(in:(roll|pitch|yaw|throttle|arm|crash)|ch:([1-9]|1[0-6]))$',
            description="`in:roll|pitch|yaw|throttle|arm|crash` = the radio's stick/command inputs, `ch:1`..`ch:16` = mixer output channels",
@@ -53,12 +55,15 @@ SCHEMAS = {
     'GpsTrack': obj(dict(home=nullable(ref('LatLon')),
                          points=dict(type='array', items=dict(type='array', items=dict(type='number'), minItems=2, maxItems=2),
                                      description='[lat, lon] pairs, thinned to one per 2 m, at most 5000'))),
-    'Plugin': obj(dict(
-        id=dict(type='string', description='Folder name; the visualiser is at `/viz/{id}`'), name=dict(type='string'), author=dict(type='string'),
-        description=dict(type='string'), version=dict(type='string'), builtin=dict(type='boolean', description='Shipped with Sticklink (false = yours)'),
-        error=nullable(dict(type='string', description='Why the plugin cannot run, e.g. a broken plugin.json')), url=dict(type='string')),
-        description='A visualiser plugin (see docs/plugins.md).'),
-    'Plugins': obj(dict(plugins=dict(type='array', items=ref('Plugin')))),
+    'Theme': obj(dict(
+        id=dict(type='string', description='Folder (or file) name; use it as the `style` setting'), name=dict(type='string'), author=dict(type='string'),
+        description=dict(type='string'), version=dict(type='string'), base=dict(type='string', description='The built-in style this theme starts from'),
+        style=dict(type='object', description='The settings the theme changes on top of its base', additionalProperties=True),
+        fonts=dict(type='array', items=obj(dict(family=dict(type='string'), url=dict(type='string')))),
+        source=dict(type='string', enum=['example', 'yours'], description='Shipped with Sticklink, or installed by you'),
+        error=nullable(dict(type='string', description='Why the theme cannot be used, e.g. a mistyped setting'))),
+        description='An overlay theme (see docs/themes.md).'),
+    'Themes': obj(dict(themes=dict(type='array', items=ref('Theme')))),
     'ObsStatus': obj(dict(
         status=dict(type='string', enum=['disabled', 'connecting', 'connected', 'unreachable', 'auth_failed', 'error']),
         error=dict(type='string'), enabled=dict(type='boolean'), host=dict(type='string'), port=dict(type='integer'),
@@ -132,20 +137,20 @@ SCHEMAS = {
                   description='`auto` fits the track; a number is a fixed zoom level'),
         follow=dict(type='boolean', default=True, description='Keep the map centred on the quad')), required=False),
     'Hud': obj(dict(
-        style=nullable(dict(type='string', enum=list(STYLES), description='`null` = use the main overlay style')),
+        style=nullable(dict(type='string', pattern=STYLE_PATTERN, description='A built-in style or an installed theme id. `null` = use the main overlay style')),
         layout=dict(type='string', enum=list(HUD_LAYOUTS), default='corners', description='How blocks are arranged on the combined HUD'),
         cells=dict(type='integer', minimum=1, maximum=8, default=4, description='Battery cell count, for per-cell voltage and warnings'),
         blocks=obj(dict(link=dict(type='boolean'), battery=dict(type='boolean'), gps=dict(type='boolean'), status=dict(type='boolean'))),
         units=obj(dict(speed=dict(type='string', enum=['kmh', 'mph']), alt=dict(type='string', enum=['m', 'ft']))),
         map=ref('HudMap')), description='The combined HUD at `/hud` and its single-block pages `/hud/link`, `/hud/battery`, `/hud/gps`'),
     'PartialHud': obj(dict(
-        style=nullable(dict(type='string', enum=list(STYLES))), layout=dict(type='string', enum=list(HUD_LAYOUTS)),
+        style=nullable(dict(type='string', pattern=STYLE_PATTERN)), layout=dict(type='string', enum=list(HUD_LAYOUTS)),
         cells=dict(type='integer', minimum=1, maximum=8),
         blocks=obj(dict(link=dict(type='boolean'), battery=dict(type='boolean'), gps=dict(type='boolean'), status=dict(type='boolean')), required=False),
         units=obj(dict(speed=dict(type='string', enum=['kmh', 'mph']), alt=dict(type='string', enum=['m', 'ft'])), required=False),
         map=ref('HudMap')), required=False),
     'Settings': obj(dict(
-        style=dict(type='string', enum=list(STYLES), default=DEFAULTS['style']),
+        style=dict(type='string', pattern=STYLE_PATTERN, default=DEFAULTS['style'], description='Built-in style (' + ', '.join(STYLES) + ') or the id of an installed theme'),
         chaos=dict(type='number', minimum=0, maximum=2, default=DEFAULTS['chaos'], description='Effect strength'),
         mode=dict(type='integer', enum=[1, 2, 3, 4], default=DEFAULTS['mode'],
                   description='Stick layout. 1: L yaw/pitch R roll/thr. 2: L yaw/thr R roll/pitch. 3: L roll/pitch R yaw/thr. 4: L roll/thr R yaw/pitch'),
@@ -154,11 +159,12 @@ SCHEMAS = {
         size=dict(type='integer', minimum=240, maximum=2160, default=DEFAULTS['size'], description='Reference size in px (sets the OBS source size)'),
         mapping=ref('Mapping'), hud=ref('Hud'))),
     'PartialSettings': obj(dict(
-        style=dict(type='string', enum=list(STYLES)), chaos=dict(type='number', minimum=0, maximum=2),
+        style=dict(type='string', pattern=STYLE_PATTERN), chaos=dict(type='number', minimum=0, maximum=2),
         mode=dict(type='integer', enum=[1, 2, 3, 4]), delay=dict(type='integer', minimum=0, maximum=5000),
         invert=dict(type='array', items=dict(type='string', enum=['roll', 'pitch', 'yaw', 'throttle'])),
         size=dict(type='integer', minimum=240, maximum=2160), mapping=ref('PartialMapping'), hud=ref('PartialHud')), required=False),
-    'Style': obj(dict(id=dict(type='string', enum=list(STYLES)), name=dict(type='string'), blurb=dict(type='string'))),
+    'Style': obj(dict(id=dict(type='string'), name=dict(type='string'), blurb=dict(type='string'),
+                      builtin=dict(type='boolean', description='false = an installed theme'))),
     'Recording': obj(dict(active=dict(type='boolean'), name=nullable(dict(type='string', example='20261006-143000-test.jsonl')),
                           records=dict(type='integer'), started_unix=nullable(dict(type='number')),
                           external=dict(type='boolean', description='Started with `--log FILE` on the command line')),
@@ -223,7 +229,7 @@ def build():
         'servers': [{'url': '/'}],
         'tags': [{'name': 'Live', 'description': 'Radio data, now'}, {'name': 'Settings', 'description': 'Overlay settings and stick mapping'},
                  {'name': 'Recording', 'description': 'Session logs'},
-                 {'name': 'Plugins', 'description': 'Visualiser plugins'}, {'name': 'OBS scenes', 'description': 'Switch OBS scenes from radio switches'}, {'name': 'Legacy', 'description': 'Kept for the bundled pages'}],
+                 {'name': 'Themes', 'description': 'Extra overlay looks'}, {'name': 'OBS scenes', 'description': 'Switch OBS scenes from radio switches'}, {'name': 'Legacy', 'description': 'Kept for the bundled pages'}],
         'paths': {
             '/api/v1/status': {'get': {
                 'tags': ['Live'], 'operationId': 'getStatus', 'summary': 'Service and radio status',
@@ -262,10 +268,10 @@ def build():
                 'delete': {'tags': ['Live'], 'operationId': 'clearGpsTrack', 'summary': 'Forget the track and home point',
                            'description': 'The next position becomes the new home. Also happens automatically when the radio script restarts.',
                            'responses': {'200': _ok(ref('GpsTrack'), 'The (now empty) track')}}},
-            '/api/v1/plugins': {'get': {
-                'tags': ['Plugins'], 'operationId': 'listPlugins', 'summary': 'Installed visualiser plugins',
-                'description': 'New folders in the plugins folder show up here without a restart. Open one at `/viz/{id}`, add it to OBS as a Browser Source.',
-                'responses': {'200': _ok(ref('Plugins'))}}},
+            '/api/v1/themes': {'get': {
+                'tags': ['Themes'], 'operationId': 'listThemes', 'summary': 'Installed overlay themes',
+                'description': 'Extra looks for the overlay and HUD. New ones show up without a restart; pick one by setting `style` to its `id`.',
+                'responses': {'200': _ok(ref('Themes'))}}},
             '/api/v1/obs': {'get': {
                 'tags': ['OBS scenes'], 'operationId': 'getObs', 'summary': 'Connection to OBS, its scenes and the current scene',
                 'responses': {'200': _ok(ref('ObsStatus'))}}},

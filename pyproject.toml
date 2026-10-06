@@ -35,4 +35,4 @@ version = {attr = "sticklink.__version__"}
 where = ["src"]
 
 [tool.setuptools.package-data]
-sticklink = ["web/*", "web/fonts/*", "web/swagger/*", "web/fonts/LICENSES/*", "web/plugins/*/*", "radio/*"]
+sticklink = ["web/*", "web/fonts/*", "web/swagger/*", "web/fonts/LICENSES/*", "web/themes/*/*", "radio/*"]

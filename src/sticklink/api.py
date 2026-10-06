@@ -169,15 +169,25 @@ def register(app, server):
         return ok(dict(channel=n, value=None if values is None else values[n-1]))
 
     async def styles(request):
-        return ok([dict(id=i, name=n, blurb=b) for i, n, b in STYLE_INFO])
+        return ok([dict(id=i, name=n, blurb=b, builtin=True) for i, n, b in STYLE_INFO]
+                  + [dict(id=t['id'], name=t['name'], blurb=t['description'], builtin=False) for t in server.themes.listing() if not t['error']])
 
     async def settings(request):
         return ok(fx.merged())
+
+    def check_styles(data):
+        """Writes may only choose a built-in style or an installed, working theme (stored settings stay lenient: a removed theme must not lose them)."""
+        known = {s[0] for s in STYLE_INFO} | {t['id'] for t in server.themes.listing() if not t['error']}
+        hud = data.get('hud') if isinstance(data.get('hud'), dict) else {}
+        for value in (data.get('style'), hud.get('style')):
+            if isinstance(value, str) and value not in known:
+                raise ValueError(f'unknown style "{value}" (see GET /api/v1/styles)')
 
     def settings_write(action):
         async def handler(request):
             data = await json_body(request)
             try:
+                check_styles(data)
                 action(data)
             except ValueError as exc:
                 return error(400, 'invalid_settings', str(exc))
@@ -239,8 +249,8 @@ def register(app, server):
         report = analyze(rec.path_for(request.match_info['name']))
         return web.Response(text=json.dumps(report, allow_nan=False), content_type='application/json')
 
-    async def plugins(request):
-        return ok(dict(plugins=server.plugins.listing()))
+    async def themes(request):
+        return ok(dict(themes=server.themes.listing()))
 
     spec_json = json.dumps(build())
 
@@ -255,7 +265,7 @@ def register(app, server):
         ('GET', '/obs', obs_status), ('PATCH', '/obs/connection', obs_connection), ('POST', '/obs/scene', obs_scene),
         ('GET', '/scene-modes', modes), ('PUT', '/scene-modes', modes_put), ('GET', '/scene-modes/state', modes_state),
         ('POST', '/scene-modes/apply', modes_apply),
-        ('GET', '/plugins', plugins),
+        ('GET', '/themes', themes),
         ('GET', '/channels', channels), ('GET', '/channels/{n}', channel), ('GET', '/styles', styles),
         ('GET', '/settings', settings),
         ('PUT', '/settings', settings_write(fx.replace)), ('PATCH', '/settings', settings_write(fx.save)),
@@ -279,6 +289,7 @@ def register(app, server):
     async def legacy_post(request):
         data = await json_body(request)
         try:
+            check_styles(data)
             return ok(fx.save(data))
         except ValueError as exc:
             return error(400, 'invalid_settings', str(exc))
