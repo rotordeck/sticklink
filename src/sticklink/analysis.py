@@ -101,7 +101,7 @@ def warnings(r):
     out = []
     if r['counts']['samples'] < 2:
         return ['no control samples recorded']
-    if r['sample_rate_hz'] < 20:
+    if r['sample_rate_hz'] is not None and r['sample_rate_hz'] < 20:  # None: too short (or too coarse a clock) to tell
         out.append(f"average sample rate {r['sample_rate_hz']:.1f} Hz is low (expected ~30 Hz)")
     if r['radio_gap_ms']['p95'] and r['radio_gap_ms']['p95'] > 100:
         out.append(f"95th percentile gap {r['radio_gap_ms']['p95']} ms: stalls in the Lua script")

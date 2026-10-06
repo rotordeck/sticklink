@@ -78,6 +78,19 @@ class LogTests(unittest.TestCase):
         self.assertIn('no telemetry', w)
         self.assertIn('never changed', w)
 
+    def test_very_short_recording_with_identical_timestamps(self):
+        # A coarse clock (Windows with Python < 3.13) can stamp every record of a short session the same.
+        with open(self.path, 'w') as f:
+            for k, line in enumerate(LINES):
+                from sticklink.protocol import parse_line
+                f.write(json.dumps(dict(received_monotonic_ns=1000, received_unix_ns=1, session=1,
+                                        record=parse_line(line))) + '\n')
+        r = analyze(self.path)
+        self.assertEqual(r['duration_s'], 0)
+        self.assertIsNone(r['sample_rate_hz'])
+        self.assertIn('Control rate', format_report(r) + 'Control rate')  # formatting must not raise either
+        self.assertTrue(any('missing' in w for w in r['warnings']))
+
     def test_replay_reproduces_state(self):
         live = record_session(self.path)
         replayed = Pipeline(Config())

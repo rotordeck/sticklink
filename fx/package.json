@@ -6,7 +6,7 @@
   "scripts": {
     "build": "esbuild stickfx=src/index.ts setup=src/setup.ts --bundle --format=esm --target=es2022 --minify --outdir=../src/sticklink/web",
     "typecheck": "tsc --noEmit -p .",
-    "test": "node --test test/"
+    "test": "node --test \"test/*.test.ts\""
   },
   "devDependencies": {
     "esbuild": "^0.25.0",
