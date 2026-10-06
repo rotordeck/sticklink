@@ -39,7 +39,9 @@ class ServiceTests(unittest.TestCase):
             svc.stop()
         self.assertFalse(svc.running)
         self.assertEqual(svc.status()[0], 'off')
-        with socket.socket() as s:  # port is free again
+        with socket.socket() as s:  # nothing listens any more (TIME_WAIT from the finished request is fine)
+            if os.name != 'nt':
+                s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             s.bind(('127.0.0.1', svc.http_port))
 
     def test_second_service_on_the_same_port_fails_cleanly(self):
