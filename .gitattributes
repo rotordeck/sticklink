@@ -1,0 +1,5 @@
+# Keep line endings stable on every platform (the radio script and the committed bundles must not change on Windows checkouts).
+* text=auto eol=lf
+*.png binary
+*.woff2 binary
+*.zip binary

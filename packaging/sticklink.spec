@@ -7,7 +7,9 @@ datas = collect_data_files('sticklink')
 hiddenimports = collect_submodules('serial') + collect_submodules('sticklink')
 
 import os
+import sys
 
 a = Analysis([os.path.join(SPECPATH, 'entry.py')], pathex=[], datas=datas, hiddenimports=hiddenimports, excludes=['tkinter', 'unittest.mock'])
 pyz = PYZ(a.pure)
-exe = EXE(pyz, a.scripts, a.binaries, a.datas, [], name='sticklink', console=True, upx=False, strip=False)
+exe = EXE(pyz, a.scripts, a.binaries, a.datas, [], name='sticklink', console=True, upx=False,
+          strip=sys.platform.startswith('linux'))  # the CI Linux Python ships an unstripped 30 MB libpython
