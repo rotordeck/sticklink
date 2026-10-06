@@ -5,7 +5,7 @@ Sticklink serves web pages; OBS shows them with its **Browser** source. The prog
 ## Add the overlay
 
 1. In **Sources** click **+** and choose **Browser**.
-2. **URL**: `http://127.0.0.1:8765/fx` (use `/overlay` for the plain panel; change the port if you started Sticklink with `--http-port`).
+2. **URL**: `http://127.0.0.1:47613/fx` (use `/overlay` for the plain panel; change the port if you started Sticklink with `--http-port`).
 3. Leave **Local file** off.
 4. **Width x Height**: **576 x 450** is recommended (the settings panel shows the size for your settings). Any size works: the
    overlay fills the whole source and keeps the gimbals in its middle, and it shrinks to fit if the source is small. Resize
@@ -30,7 +30,7 @@ panel, copy the *link to this configuration* and use it as that source's URL. A 
 ## Change the look from OBS
 
 Right-click the source, choose **Interact**, then double-click inside the window: the settings panel opens. Changes are
-saved by Sticklink itself, so you can also open `http://127.0.0.1:8765/fx` in any browser and change the settings there;
+saved by Sticklink itself, so you can also open `http://127.0.0.1:47613/fx` in any browser and change the settings there;
 the OBS source follows within about two seconds.
 
 If the overlay runs slightly ahead of your video, raise **Video delay (ms)** in the panel.

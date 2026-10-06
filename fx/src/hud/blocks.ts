@@ -1,5 +1,5 @@
 // The four HUD blocks, drawn in design units at (0, 0): Link, Battery, GPS (with the map) and Status.
-import { badge, buildBattery, buildGps, buildLink, formatClock, type Badge, type GpsInfo, type Level, type Telemetry, type Units } from './catalog.ts';
+import { badge, buildBattery, buildGps, buildLink, formatClock, raceTime, type Badge, type GpsInfo, type Level, type Telemetry, type Units } from './catalog.ts';
 import { PROVIDERS, mapView, project, type LatLon } from './geo.ts';
 import type { HudConfig } from '../config.ts';
 import type { History } from './history.ts';
@@ -9,7 +9,14 @@ import { DESIGN } from './layout.ts';
 
 export type RadioState = 'live' | 'demo' | 'paused' | 'disconnected' | 'offline';
 
+/** What the race block draws: times already advanced to this frame, and the lap that just closed (for the pop). */
+export interface RaceView {
+  state: 'idle' | 'running' | 'finished'; lapMs: number | null; elapsedMs: number | null; laps: number[]; lapCount: number;
+  pop: { ms: number; n: number; at: number } | null;
+}
+
 export interface HudData {
+  race: RaceView | null;
   tel: Telemetry; gps: GpsInfo | null; hud: HudConfig; units: Units;
   armSwitch: boolean; armed: boolean | null; flip: boolean | null; throttle: number | null; flightSeconds: number; radio: RadioState;
   track: LatLon[]; history: History; tiles: TileMap; now: number;
@@ -210,5 +217,37 @@ export function drawStatus(ctx: Ctx, look: Look, d: HudData) {
     ctx.save(); ctx.globalAlpha = 0.7 + 0.3 * Math.sin(look.t * 10); ctx.fillStyle = '#ff3b3b';
     ctx.beginPath(); ctx.roundRect(446, 76, 94, 24, 6); ctx.fill(); ctx.restore();
     text(ctx, 'CRASH FLIP', 493, 93, 13, look, { align: 'center', color: '#fff', stroke: false, weight: 'bold' });
+  }
+}
+
+// ---------------------------------------------------------------- Race
+const POP_MS = 900;
+
+export function drawRace(ctx: Ctx, look: Look, d: HudData) {
+  const { w, h } = DESIGN.race, r = d.race;
+  plate(ctx, 0, 0, w, h, look);
+  label(ctx, 'RACE', 22, 32, look);
+  if (!r) return noData(ctx, w, h, 'NO RADIO DATA', look);
+  const finished = r.state === 'finished', popAge = r.pop ? d.now - r.pop.at : Infinity, popping = r.state === 'running' && popAge < POP_MS;
+  label(ctx, popping ? `LAP ${r.pop!.n}` : { idle: 'TAP CRASH FLIP TO START', running: 'RUNNING', finished: 'FINISHED' }[r.state], w - 22, 32, look, 'right');
+  // the big number: the running lap, the lap that just closed (a short pop), or the frozen total
+  const ms = popping ? r.pop!.ms : finished ? r.elapsedMs : r.state === 'running' ? r.lapMs : null;
+  const t = raceTime(ms ?? 0), color = popping ? look.accent : finished ? look.ok : r.state === 'running' ? look.text : look.muted;
+  const grow = popping ? 1 + 0.22 * (1 - popAge / POP_MS) ** 2 : 1, px = Math.min(112, fitPx(ctx, t.main, 360, 112, look, 40)) * grow;
+  ctx.save();
+  value(ctx, t.main, t.small, w / 2, 148, px, color, look, 'center');
+  ctx.restore();
+  // the last laps, newest first, one column up to three laps and two columns above that
+  const n = Math.min(d.hud.race.laps, r.laps.length), cols = n > 3 ? 2 : 1, rows = Math.ceil(n / cols), step = Math.min(30, 100 / Math.max(1, rows)), lpx = step * 0.8;
+  for (let i = 0; i < n; i++) {
+    const col = Math.floor(i / rows), row = i % rows, x = cols === 1 ? w / 2 : 30 + col * (w / 2), y = 190 + step * (row + 1) - 4;
+    const lap = raceTime(r.laps[r.laps.length - 1 - i]), no = r.lapCount - i;
+    if (cols === 1) {
+      text(ctx, `#${no}`, w / 2 - 110, y, lpx, look, { color: look.muted, stroke: false });
+      text(ctx, `${lap.main}${lap.small}`, w / 2 + 110, y, lpx, look, { align: 'right', color: i === 0 ? look.text : look.muted, stroke: false });
+    } else {
+      text(ctx, `#${no}`, x, y, lpx, look, { color: look.muted, stroke: false });
+      text(ctx, `${lap.main}${lap.small}`, x + w / 2 - 60, y, lpx, look, { align: 'right', color: i === 0 ? look.text : look.muted, stroke: false });
+    }
   }
 }

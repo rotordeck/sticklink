@@ -7,7 +7,8 @@ export type MapProvider = 'osm' | 'carto-dark' | 'carto-light' | 'custom' | 'non
 export interface HudConfig {
   style: string | null; // null = follow the main style
   layout: HudLayout; cells: number;
-  blocks: { link: boolean; battery: boolean; gps: boolean; status: boolean };
+  blocks: { link: boolean; battery: boolean; gps: boolean; status: boolean; race: boolean };
+  race: { laps: number }; // how many finished laps are listed under the big timer
   units: { speed: 'kmh' | 'mph'; alt: 'm' | 'ft' };
   map: { provider: MapProvider; customUrl: string; attribution: string; zoom: 'auto' | number; follow: boolean };
 }
@@ -18,7 +19,8 @@ export interface FxConfig {
 
 export const DEFAULT_HUD: HudConfig = {
   style: null, layout: 'corners', cells: 4,
-  blocks: { link: true, battery: true, gps: true, status: true },
+  blocks: { link: true, battery: true, gps: true, status: true, race: true },
+  race: { laps: 3 },
   units: { speed: 'kmh', alt: 'm' },
   map: { provider: 'osm', customUrl: '', attribution: '', zoom: 'auto', follow: true },
 };
@@ -50,6 +52,7 @@ export function cleanHud(raw: any, base: HudConfig, styles: string[]): HudConfig
     if (raw.units.speed === 'kmh' || raw.units.speed === 'mph') out.units.speed = raw.units.speed;
     if (raw.units.alt === 'm' || raw.units.alt === 'ft') out.units.alt = raw.units.alt;
   }
+  if (raw.race && typeof raw.race === 'object' && 'laps' in raw.race) out.race.laps = Math.round(num(raw.race.laps, 0, 10, base.race.laps));
   const m = raw.map;
   if (m && typeof m === 'object') {
     if (MAP_PROVIDERS.includes(m.provider)) out.map.provider = m.provider;

@@ -71,8 +71,8 @@ class ServiceTests(unittest.TestCase):
 class WindowTests(unittest.TestCase):
     def test_window_starts_and_stops_the_service(self):
         try:
-            import tkinter as tk
-            root = tk.Tk()
+            import customtkinter as ctk
+            root = ctk.CTk()
         except Exception as exc:  # no tkinter / no X server
             self.skipTest(str(exc))
         from sticklink import gui

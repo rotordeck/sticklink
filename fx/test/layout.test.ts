@@ -3,14 +3,14 @@ import assert from 'node:assert/strict';
 import { DESIGN, layoutHud, layoutSingle, type Block, type Placed } from '../src/hud/layout.ts';
 import { mapView, fitZoom, project } from '../src/hud/geo.ts';
 
-const ALL: Block[] = ['link', 'battery', 'gps', 'status'];
+const ALL: Block[] = ['link', 'battery', 'gps', 'status', 'race'];
 const overlap = (a: Placed, b: Placed) => a.x < b.x + b.w - 0.01 && b.x < a.x + a.w - 0.01 && a.y < b.y + b.h - 0.01 && b.y < a.y + a.h - 0.01;
 
 test('every layout keeps every block inside the screen, undistorted and not overlapping, at many sizes', () => {
   const sizes: [number, number][] = [[1920, 1080], [1280, 720], [3840, 2160], [1000, 600], [800, 450], [576, 450], [450, 576], [2560, 1080]];
   for (const layout of ['corners', 'row', 'column'] as const) for (const [W, H] of sizes) {
     const placed = layoutHud(layout, ALL, W, H), list = Object.entries(placed) as [Block, Placed][];
-    assert.equal(list.length, 4);
+    assert.equal(list.length, 5);
     for (const [b, p] of list) {
       assert.ok(p.x >= -0.01 && p.y >= -0.01 && p.x + p.w <= W + 0.01 && p.y + p.h <= H + 0.01, `${layout} ${W}x${H} ${b} inside: ${JSON.stringify(p)}`);
       assert.ok(Math.abs(p.w / p.h - DESIGN[b].w / DESIGN[b].h) < 1e-9, `${b} keeps its aspect ratio`);

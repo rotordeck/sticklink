@@ -3,6 +3,7 @@ import time
 
 from .config import Config
 from .geo import bearing_deg, haversine_m
+from .race import RaceTimer
 
 MIN_TRACK_STEP_M = 2.0   # a new track point only after moving this far
 MAX_TRACK_POINTS = 5000
@@ -32,6 +33,7 @@ class RadioState:
         self.outputs = [0]*16
         self.output_times = {}
         self.arm = self.crash = None
+        self.race = RaceTimer(self.config.race_double_tap_ms)
         self.telemetry = {}
         self.last_sample = self.last_tick = self.last_seq = None
 
@@ -85,6 +87,7 @@ class RadioState:
             self.controls = record['channels']
             self.arm = self.controls['arm'] > cfg.arm_threshold
             self.crash = self.controls['crash'] > cfg.crash_threshold
+            self.race.feed(tick, self.arm, self.crash)
             self.last_sample = now
             self.samples += 1
         elif record['type'] == 'G':
@@ -166,6 +169,7 @@ class RadioState:
             notes=list(self.notes), gps=self.gps_snapshot(now), controls=controls, raw=dict(self.controls) if live else None, channels=outputs,
             commands=dict(arm=self.arm if live else None,
             crash=self.crash if live else None), telemetry=telemetry,
+            race=self.race.snapshot() if live else None,
             tick=self.last_tick, seq=self.last_seq,
             age_ms=None if age is None else round(age), error=self.error,
             diagnostics=dict(invalid=self.invalid, missing=self.missing,

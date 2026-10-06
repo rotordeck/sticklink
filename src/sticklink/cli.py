@@ -1,4 +1,5 @@
 import argparse
+import asyncio
 from pathlib import Path
 import math
 import shutil
@@ -12,6 +13,7 @@ from .fxconfig import FxConfigStore
 from .pipeline import Pipeline
 from .themes import ThemeError, ThemeStore
 from .server import OverlayServer
+from .service import PAGES, describe_status
 from .recorder import Recorder
 from .scenes import SceneStore
 from .sources.demo import DemoSource
@@ -24,11 +26,12 @@ def parser():
     sub = p.add_subparsers(dest='command', required=True)
 
     def serving(sp):
-        sp.add_argument('--http-port', type=int, default=8765)
+        sp.add_argument('--http-port', type=int, default=47613)
         sp.add_argument('--stale-ms', type=int, default=500)
         sp.add_argument('--scale', type=float, default=1024)
         sp.add_argument('--arm-threshold', type=int, default=0)
         sp.add_argument('--crash-threshold', type=int, default=0)
+        sp.add_argument('--race-double-tap-ms', type=int, default=500, help='two crash-flip taps this close together stop the race timer')
         sp.add_argument('--input-label', choices=['sticks', 'outputs', 'unknown'],
                         default='unknown')
         sp.add_argument('--log', help='start recording a JSONL session log to this file right away')
@@ -67,8 +70,10 @@ def parser():
     psub.add_parser('list', help='list the installed themes')
     psub.add_parser('path', help='print the themes folder')
 
-    sub.add_parser('list-ports', help='list serial ports')
-    sub.add_parser('gui', help='a small window with Start / Stop, status and links (also what you get with no command)')
+    lp = sub.add_parser('list-ports', help='list serial ports (radios only, like the window)')
+    lp.add_argument('--all', action='store_true', help='also list built-in serial ports with no hardware id')
+    gui_p = sub.add_parser('gui', help='a small window with Start / Stop, status and links (also what you get with no command)')
+    gui_p.add_argument('--http-port', type=int, default=47613)
     return p
 
 
@@ -83,10 +88,12 @@ def main(argv=None):
             from . import gui
         except ImportError:  # Python without tkinter (some Linux distributions package it separately)
             p.error('the window needs tkinter (Linux: install python3-tk). The other commands work without it.')
-        return gui.main()
+        return gui.main(args.http_port)
     if args.command == 'list-ports':
         from serial.tools.list_ports import comports
         for port in comports():
+            if not args.all and (not port.hwid or port.hwid == 'n/a'):
+                continue
             print(f'{port.device}\t{port.description}')
         return
     if args.command == 'radio-script':
@@ -133,12 +140,38 @@ def main(argv=None):
         source = ReplaySource(args.file, args.speed, args.loop)
     config = Config(scale=args.scale, stale_ms=args.stale_ms,
         arm_threshold=args.arm_threshold, crash_threshold=args.crash_threshold,
+        race_double_tap_ms=args.race_double_tap_ms,
         input_label=args.input_label, demo=args.command == 'run' and args.demo)
     pipeline = Pipeline(config)
     recorder = Recorder(pipeline, args.recordings_dir, source=source.label)
     if args.log:
         recorder.start_path(args.log)
-    print(f'OBS browser source: http://127.0.0.1:{args.http_port}/overlay   API docs: http://127.0.0.1:{args.http_port}/docs', flush=True)
-    web.run_app(OverlayServer(pipeline, source, fx_config=FxConfigStore(args.fx_config), recorder=recorder,
-                              scene_store=SceneStore(args.scenes_config), theme_store=ThemeStore(args.themes_dir)).app(),
-                host='127.0.0.1', port=args.http_port)
+    port = args.http_port
+    import socket
+    with socket.socket() as probe:  # a second Sticklink (or anything else) on the port: say so instead of a traceback
+        if probe.connect_ex(('127.0.0.1', port)) == 0:
+            from .service import running_sticklink
+            other = running_sticklink(port)
+            p.exit(1, (f'Sticklink {other} is already running on port {port} (another terminal or the window). Close it first, '
+                       f'or open http://127.0.0.1:{port}/ for its web portal.\n') if other else
+                   f'Port {port} is used by another program. Close it, or pick another port with --http-port.\n')
+    for label, path in PAGES:
+        print(f'{label + ":":<18}http://127.0.0.1:{port}{path}')
+    print(flush=True)
+    app = OverlayServer(pipeline, source, fx_config=FxConfigStore(args.fx_config), recorder=recorder,
+                        scene_store=SceneStore(args.scenes_config), theme_store=ThemeStore(args.themes_dir)).app()
+
+    async def report_status(app):
+        async def watch():
+            last = None
+            while True:
+                text = describe_status(pipeline.snapshot())[1]
+                if text != last:
+                    print(f'Status: {text}', flush=True)
+                    last = text
+                await asyncio.sleep(0.5)
+        task = asyncio.create_task(watch())
+        yield
+        task.cancel()
+    app.cleanup_ctx.append(report_status)
+    web.run_app(app, host='127.0.0.1', port=port, print=None)

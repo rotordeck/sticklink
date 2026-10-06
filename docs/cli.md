@@ -4,7 +4,7 @@
 
 ## `sticklink gui` (or no command)
 
-A small window: radio picker (or Demo), **Start / Stop**, a status light (stopped, waiting for the radio, connected) and buttons that open the web pages. It serves on port 8765 and stops everything when closed. Needs tkinter (included in the downloads; on Linux with pip install `python3-tk`).
+A small window: radio picker (or Demo), **Start / Stop**, a status light (stopped, waiting for the radio, connected) and buttons that open the web pages. It serves on port 47613 and stops everything when closed. Needs tkinter (included in the downloads; on Linux with pip install `python3-tk`).
 
 ## `sticklink theme ...`
 
@@ -20,11 +20,12 @@ Exactly one of `--port` or `--demo`.
 | `--port NAME` | | Serial port of the radio (`COM5`, `/dev/ttyACM0`, `/dev/cu.usbmodem...`) |
 | `--demo` | | Synthetic sticks, switches and telemetry; no radio needed |
 | `--baud N` | 115200 | Serial baud rate (USB serial ignores it in practice) |
-| `--http-port N` | 8765 | Port of the web server (it always binds to 127.0.0.1) |
+| `--http-port N` | 47613 | Port of the web server (it always binds to 127.0.0.1) |
 | `--input-label sticks\|outputs\|unknown` | unknown | What the radio's control values represent; `sticks` for the bundled script |
 | `--stale-ms N` | 500 | No control sample for this long means "paused" |
 | `--scale N` | 1024 | Channel value that counts as full deflection |
 | `--arm-threshold N`, `--crash-threshold N` | 0 | Value above which the default channels 5 / 8 count as on |
+| `--race-double-tap-ms N` | 500 | Two crash-flip taps this close together stop the [race timer](overlay-guide.md#race-timer) |
 | `--log FILE` | | Start a recording to this file straight away (a path you choose) |
 | `--recordings-dir DIR` | `~/.local/share/sticklink/recordings` | Folder for recordings started through the API |
 | `--fx-config FILE` | `~/.config/sticklink/fx.json` | Overlay settings file |

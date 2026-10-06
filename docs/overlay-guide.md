@@ -67,7 +67,7 @@ channels) and its mixer outputs `CH1` to `CH16`. Defaults: sticks on their own i
 
 ## Telemetry HUD
 
-`/hud` shows telemetry as badges in the same eight styles as `/fx`; `/hud/link`, `/hud/battery` and `/hud/gps` show one block each,
+`/hud` shows telemetry as badges in the same eight styles as `/fx`; `/hud/link`, `/hud/battery`, `/hud/gps` and `/hud/race` show one block each,
 so they can be separate OBS Browser Sources. The pages fill whatever source size you give them and keep their content centred.
 
 ![HUD, neon](img/hud-corners-neon.png)
@@ -94,6 +94,20 @@ video), `row` (along the bottom) and `column` (down the left edge). The block pa
 
 **Flight timer.** It runs while your mapped ARM switch is on, restarts at each arming, and stays on screen after disarming. It lives in the browser
 page, so refreshing the page (or the OBS source) resets it.
+
+### Race timer
+
+`/hud/race` (and the **race** block on `/hud`) is a lap timer driven by the crash-flip switch (the radio's default channel 8, `--crash-threshold`).
+It only reacts while the quad is **armed**.
+
+- A tap starts the race. Every further tap closes a lap: the lap time pops up big for a moment and the next lap starts. The big number is the current lap.
+- Under it come the last laps, newest first. **Laps shown under the race timer** (0 to 10) is in the settings panel (double-click the page).
+- **Double tap** (two taps within 0.5 s, `--race-double-tap-ms`) stops the race. The lap the first tap closed is kept, and the total race time stays big, in green.
+  A double tap right after the start cancels the race. The next single tap starts a fresh race; disarming ends a running race too.
+- `POST /api/v1/race/reset` clears it; the timer state is in `race` of `GET /api/v1/state`.
+
+The times come from the radio's clock (10 ms ticks) and the radio sends the switch about every 50 ms, so expect an accuracy of about 50 ms, not 1 ms.
+The timer follows the radio's `crash` input, not the **flip** switch you map on `/setup`.
 
 ### The map
 

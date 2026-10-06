@@ -5,7 +5,7 @@ import { loadThemes } from '../themes.ts';
 import { applyMapping } from '../mapping.ts';
 import { PARAM, decodeConfig, permalink } from '../permalink.ts';
 import { LINK_CSS, LINK_HTML, LinkRow } from '../permalink-ui.ts';
-import { drawBattery, drawGps, drawLink, drawStatus, type HudData, type RadioState } from './blocks.ts';
+import { drawBattery, drawGps, drawLink, drawRace, drawStatus, type HudData, type RadioState, type RaceView } from './blocks.ts';
 import { layoutHud, layoutSingle, type Block } from './layout.ts';
 import { brackets, makeLook, scanlines } from './look.ts';
 import { haversine } from './geo.ts';
@@ -16,12 +16,12 @@ import { StickLinkClient } from '../../../src/sticklink/web/client.js';
 
 const FONTS = ['16px Bungee', 'italic 900 16px Orbitron', '700 16px Fredoka', '16px VT323'];
 const DRAW: Record<Block, (ctx: CanvasRenderingContext2D, look: ReturnType<typeof makeLook>, d: HudData) => void> = {
-  link: drawLink, battery: drawBattery, gps: drawGps, status: drawStatus,
+  link: drawLink, battery: drawBattery, gps: drawGps, status: drawStatus, race: drawRace,
 };
 
-/** /hud shows everything; /hud/link, /hud/battery and /hud/gps show one block. */
+/** /hud shows everything; /hud/link, /hud/battery, /hud/gps, /hud/status and /hud/race show one block. */
 export function blockFromPath(path: string): Block | 'all' {
-  const m = /^\/hud\/(link|battery|gps|status)\/?$/.exec(path);
+  const m = /^\/hud\/(link|battery|gps|status|race)\/?$/.exec(path);
   return m ? (m[1] as Block) : 'all';
 }
 
@@ -36,6 +36,7 @@ export class StickHud extends HTMLElement {
   private history = new History();
   private track: { lat: number; lon: number }[] = [];
   private lastTrackFetch = 0;
+  private raceFrom: unknown = null; private raceRecv = 0; private raceVersion = -1; private raceLaps = 0; private racePop: RaceView['pop'] = null;
   private armedAt: number | null = null; private flight = 0; private wasArmed = false;
   private editedAt = -Infinity; // when the user last changed a setting here: polled server settings must not overwrite a fresh edit
   private pinned = false; // opened from a ?cfg= link: use exactly that, never touch the server's saved settings
@@ -144,6 +145,21 @@ export class StickHud extends HTMLElement {
     }
   }
 
+  /** The bridge's race timer, advanced to this frame, plus the lap that just closed (shown big for a moment). */
+  private raceView(state: any, ts: number, live: boolean): RaceView | null {
+    const r = state?.race;
+    if (!live || !r) { this.raceVersion = -1; this.racePop = null; return null; }
+    if (state !== this.raceFrom) { this.raceFrom = state; this.raceRecv = ts; } // times are as of this message: add the time since
+    if (r.version !== this.raceVersion) {
+      if (this.raceVersion !== -1 && r.state === 'running' && r.lap_count > this.raceLaps && r.laps.length) this.racePop = { ms: r.laps[r.laps.length - 1], n: r.lap_count, at: ts };
+      else if (r.state !== 'running') this.racePop = null;
+      this.raceVersion = r.version; this.raceLaps = r.lap_count;
+    }
+    const since = r.state === 'running' ? ts - this.raceRecv : 0;
+    return { state: r.state, lapMs: r.lap_ms === null ? null : r.lap_ms + since, elapsedMs: r.elapsed_ms === null ? null : r.elapsed_ms + since,
+      laps: r.laps, lapCount: r.lap_count, pop: this.racePop };
+  }
+
   // ------------------------------------------------------------ drawing
   private frame = (ts: number) => {
     this.raf = requestAnimationFrame(this.frame);
@@ -161,7 +177,7 @@ export class StickHud extends HTMLElement {
     this.wasArmed = armed;
 
     const data: HudData = {
-      tel, gps: state?.gps ?? null, hud: this.cfg.hud, units: this.cfg.hud.units,
+      race: this.raceView(state, ts, live), tel, gps: state?.gps ?? null, hud: this.cfg.hud, units: this.cfg.hud.units,
       armSwitch: this.cfg.mapping.arm !== null, armed: transportLive ? (live ? mapped.arm : null) : null, flip: live ? mapped.flip : null, throttle: live ? mapped.throttle : null,
       flightSeconds: this.flight, radio: (transportLive ? (state?.status ?? 'disconnected') : 'offline') as RadioState,
       track: this.track, history: this.history, tiles: this.tiles, now: ts,
@@ -191,7 +207,8 @@ export class StickHud extends HTMLElement {
       <label>Style <select name="style"><option value="">same as main overlay</option>${PRESETS.map((p) => `<option value="${p.id}">${p.name}</option>`).join('')}</select></label>
       <label>Layout <select name="layout"><option value="corners">corners</option><option value="row">row</option><option value="column">column</option></select></label>
       <h4>BLOCKS ON THE COMBINED HUD</h4>
-      <div class="row">${['link', 'battery', 'gps', 'status'].map((b) => `<label><input type="checkbox" name="block-${b}"> ${b}</label>`).join('')}</div>
+      <div class="row">${['link', 'battery', 'gps', 'status', 'race'].map((b) => `<label><input type="checkbox" name="block-${b}"> ${b}</label>`).join('')}</div>
+      <label>Laps shown under the race timer <input type="number" name="laps" min="0" max="10" step="1"></label>
       <label>Battery cells <input type="number" name="cells" min="1" max="8" step="1"></label>
       <label>Speed <select name="speed"><option value="kmh">km/h</option><option value="mph">mph</option></select></label>
       <label>Altitude <select name="alt"><option value="m">metres</option><option value="ft">feet</option></select></label>
@@ -215,20 +232,20 @@ export class StickHud extends HTMLElement {
 
   private syncPanel() {
     const h = this.cfg.hud, set = (n: string, v: string | number) => { const el = this.field(n); if (this.shadowRoot!.activeElement !== el) el.value = String(v); };
-    set('style', h.style ?? ''); set('layout', h.layout); set('cells', h.cells); set('speed', h.units.speed); set('alt', h.units.alt);
+    set('style', h.style ?? ''); set('layout', h.layout); set('cells', h.cells); set('laps', h.race.laps); set('speed', h.units.speed); set('alt', h.units.alt);
     set('provider', h.map.provider); set('customUrl', h.map.customUrl); set('attribution', h.map.attribution); set('zoom', String(h.map.zoom));
-    (['link', 'battery', 'gps', 'status'] as const).forEach((b) => { this.field(`block-${b}`).checked = h.blocks[b]; });
+    (['link', 'battery', 'gps', 'status', 'race'] as const).forEach((b) => { this.field(`block-${b}`).checked = h.blocks[b]; });
     this.field('follow').checked = h.map.follow;
     this.updateLink();
-    this.panel.querySelector('.info')!.innerHTML = `This is page <b>${location.pathname}</b>. Pages: /hud, /hud/link, /hud/battery, /hud/gps. Any source size works; 1920 × 1080 for the combined HUD. ` +
+    this.panel.querySelector('.info')!.innerHTML = `This is page <b>${location.pathname}</b>. Pages: /hud, /hud/link, /hud/battery, /hud/gps, /hud/race. Any source size works; 1920 × 1080 for the combined HUD. ` +
       `Map tiles load from the internet: the tile server sees the area you view, and the map shows its credit. Double-click or Esc closes this panel.`;
   }
 
   private readPanel() {
     const f = (n: string) => this.field(n);
     const raw: any = {
-      style: f('style').value || null, layout: f('layout').value, cells: f('cells').value,
-      blocks: Object.fromEntries((['link', 'battery', 'gps', 'status'] as const).map((b) => [b, f(`block-${b}`).checked])),
+      style: f('style').value || null, layout: f('layout').value, cells: f('cells').value, race: { laps: f('laps').value },
+      blocks: Object.fromEntries((['link', 'battery', 'gps', 'status', 'race'] as const).map((b) => [b, f(`block-${b}`).checked])),
       units: { speed: f('speed').value, alt: f('alt').value },
       map: { provider: f('provider').value, customUrl: f('customUrl').value.trim(), attribution: f('attribution').value, zoom: f('zoom').value, follow: f('follow').checked },
     };

@@ -144,3 +144,9 @@ export function formatClock(seconds: number): string {
   const pad = (n: number) => String(n).padStart(2, '0');
   return h ? `${h}:${pad(m % 60)}:${pad(s % 60)}` : `${pad(m)}:${pad(s % 60)}`;
 }
+
+/** A race time split for display: `main` is shown big (seconds and tenths, with minutes from 1:00), `small` the last two digits. */
+export function raceTime(ms: number): { main: string; small: string } {
+  const t = Math.max(0, Math.floor(ms)), s = Math.floor(t / 1000), m = Math.floor(s / 60), tenths = Math.floor((t % 1000) / 100);
+  return { main: m ? `${m}:${String(s % 60).padStart(2, '0')}.${tenths}` : `${s}.${tenths}`, small: String(t % 100).padStart(2, '0') };
+}

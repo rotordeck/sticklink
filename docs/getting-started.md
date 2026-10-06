@@ -33,7 +33,7 @@ The downloads are not code-signed, so your system will warn once:
 ./sticklink run --demo
 ```
 
-Open <http://127.0.0.1:8765/fx>: two gimbals move by themselves, with an ARM timer and telemetry. Stop with Ctrl+C.
+Open <http://127.0.0.1:47613/fx>: two gimbals move by themselves, with an ARM timer and telemetry. Stop with Ctrl+C.
 The server only listens on your own computer (`127.0.0.1`).
 
 ## 3. Connect your radio
@@ -50,13 +50,13 @@ Leave the program running while you use the overlay, and close any other program
 
 ## 4. Set up sticks and switches
 
-Open <http://127.0.0.1:8765/setup>. Move your sticks: the quad and the bars must follow in the right direction. If
+Open <http://127.0.0.1:47613/setup>. Move your sticks: the quad and the bars must follow in the right direction. If
 something is swapped or reversed, press **Learn** next to that function and move the control. Assign your ARM and
 Crash Flip switches the same way (switch OFF first, press Learn, flip it ON). Details: [overlay guide](overlay-guide.md).
 
 ## 5. Show it in OBS
 
-[OBS setup](obs-setup.md): Browser Source, URL `http://127.0.0.1:8765/fx`, 576 x 450, 60 fps.
+[OBS setup](obs-setup.md): Browser Source, URL `http://127.0.0.1:47613/fx`, 576 x 450, 60 fps.
 
 ## Where files go
 

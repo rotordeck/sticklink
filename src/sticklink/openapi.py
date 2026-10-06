@@ -96,6 +96,14 @@ SCHEMAS = {
         currentScene=nullable(dict(type='string')), obs=dict(type='string'))),
     'SceneRequest': obj(dict(scene=dict(type='string', minLength=1))),
     'SceneResult': obj(dict(scene=dict(type='string'))),
+    'Race': obj(dict(
+        state=dict(type='string', enum=['idle', 'running', 'finished']),
+        lap_ms=nullable(dict(type='integer', description='The current lap, while running')),
+        elapsed_ms=nullable(dict(type='integer', description='The race so far, or the frozen total once finished')),
+        laps=dict(type='array', items=dict(type='integer'), maxItems=20, description='Closed lap times in ms, newest last (at most the last 20)'),
+        lap_count=dict(type='integer', description='Laps closed in this race'),
+        version=dict(type='integer', description='Increments on every start, lap, stop and reset')),
+        description='The crash-flip race timer. Times come from the radio clock (10 ms ticks) and are accurate to about the 50 ms sample rate. `null` while the radio is not live.'),
     'State': obj(dict(
         schema=dict(type='integer', example=1), session=dict(type='integer', description='Increments on every radio restart/reconnect'),
         status=dict(type='string', enum=['live', 'demo', 'paused', 'disconnected']),
@@ -105,6 +113,7 @@ SCHEMAS = {
                                description='Mixer outputs CH1..CH16; `null` until the radio script reports them')),
         notes=dict(type='array', items=dict(type='string'), description='Diagnostics sent by the radio script (newest last)'),
         commands=ref('Commands'), gps=ref('Gps'), telemetry=dict(type='object', additionalProperties=ref('Sensor')),
+        race=nullable(ref('Race')),
         tick=nullable(dict(type='integer', description='Radio clock, 10 ms ticks')),
         seq=nullable(dict(type='integer')), age_ms=nullable(dict(type='integer', description='Age of the newest control sample')),
         error=dict(type='string'), diagnostics=ref('Diagnostics'),
@@ -140,13 +149,15 @@ SCHEMAS = {
         style=nullable(dict(type='string', pattern=STYLE_PATTERN, description='A built-in style or an installed theme id. `null` = use the main overlay style')),
         layout=dict(type='string', enum=list(HUD_LAYOUTS), default='corners', description='How blocks are arranged on the combined HUD'),
         cells=dict(type='integer', minimum=1, maximum=8, default=4, description='Battery cell count, for per-cell voltage and warnings'),
-        blocks=obj(dict(link=dict(type='boolean'), battery=dict(type='boolean'), gps=dict(type='boolean'), status=dict(type='boolean'))),
+        blocks=obj(dict(link=dict(type='boolean'), battery=dict(type='boolean'), gps=dict(type='boolean'), status=dict(type='boolean'), race=dict(type='boolean'))),
+        race=obj(dict(laps=dict(type='integer', minimum=0, maximum=10, default=3, description='Finished laps listed under the big race timer'))),
         units=obj(dict(speed=dict(type='string', enum=['kmh', 'mph']), alt=dict(type='string', enum=['m', 'ft']))),
-        map=ref('HudMap')), description='The combined HUD at `/hud` and its single-block pages `/hud/link`, `/hud/battery`, `/hud/gps`'),
+        map=ref('HudMap')), description='The combined HUD at `/hud` and its single-block pages `/hud/link`, `/hud/battery`, `/hud/gps`, `/hud/status`, `/hud/race`'),
     'PartialHud': obj(dict(
         style=nullable(dict(type='string', pattern=STYLE_PATTERN)), layout=dict(type='string', enum=list(HUD_LAYOUTS)),
         cells=dict(type='integer', minimum=1, maximum=8),
-        blocks=obj(dict(link=dict(type='boolean'), battery=dict(type='boolean'), gps=dict(type='boolean'), status=dict(type='boolean')), required=False),
+        blocks=obj(dict(link=dict(type='boolean'), battery=dict(type='boolean'), gps=dict(type='boolean'), status=dict(type='boolean'), race=dict(type='boolean')), required=False),
+        race=obj(dict(laps=dict(type='integer', minimum=0, maximum=10)), required=False),
         units=obj(dict(speed=dict(type='string', enum=['kmh', 'mph']), alt=dict(type='string', enum=['m', 'ft'])), required=False),
         map=ref('HudMap')), required=False),
     'Settings': obj(dict(
@@ -268,6 +279,9 @@ def build():
                 'delete': {'tags': ['Live'], 'operationId': 'clearGpsTrack', 'summary': 'Forget the track and home point',
                            'description': 'The next position becomes the new home. Also happens automatically when the radio script restarts.',
                            'responses': {'200': _ok(ref('GpsTrack'), 'The (now empty) track')}}},
+            '/api/v1/race/reset': {
+                'post': {'tags': ['Live'], 'operationId': 'resetRace', 'summary': 'Clear the race timer and its laps',
+                         'responses': {'200': _ok(ref('Race'), 'The (now idle) race timer')}}},
             '/api/v1/themes': {'get': {
                 'tags': ['Themes'], 'operationId': 'listThemes', 'summary': 'Installed overlay themes',
                 'description': 'Extra looks for the overlay and HUD. New ones show up without a restart; pick one by setting `style` to its `id`.',

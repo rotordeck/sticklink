@@ -45,14 +45,14 @@ overlays, and records every session so you can check and reuse the data later.
    ```bash
    ./sticklink run --demo          # Windows: sticklink.exe run --demo
    ```
-   Open <http://127.0.0.1:8765/fx>. You should see two gimbals moving by themselves.
+   Open <http://127.0.0.1:47613/fx>. You should see two gimbals moving by themselves.
 3. **Connect your radio**: install the script and set USB-VCP to LUA ([radio setup](https://github.com/rotordeck/sticklink/blob/main/docs/radio-setup.md)), then
    ```bash
    ./sticklink list-ports
    ./sticklink run --port /dev/ttyACM0 --input-label sticks     # Windows: --port COM5
    ```
-4. **Assign your sticks and switches** at <http://127.0.0.1:8765/setup> (press *Learn*, move the control).
-5. **Add it to OBS** as a Browser Source with the URL `http://127.0.0.1:8765/fx`, size 576x450, 60 fps
+4. **Assign your sticks and switches** at <http://127.0.0.1:47613/setup> (press *Learn*, move the control).
+5. **Add it to OBS** as a Browser Source with the URL `http://127.0.0.1:47613/fx`, size 576x450, 60 fps
    ([OBS setup](https://github.com/rotordeck/sticklink/blob/main/docs/obs-setup.md)). Double-click the page (in OBS: right-click, *Interact*) to change the look.
 
 Prefer Python? Once published on PyPI: `uvx sticklink run --demo` (no install, needs [uv](https://docs.astral.sh/uv/)) or
@@ -64,7 +64,7 @@ Prefer Python? Once published on PyPI: `uvx sticklink run --demo` (no install, n
 | Address / command | What it does |
 |---|---|
 | `/fx` | Effects overlay for OBS (double-click for settings) |
-| `/hud`, `/hud/link`, `/hud/battery`, `/hud/gps` | Telemetry HUD (combined, or one block per page) |
+| `/hud`, `/hud/link`, `/hud/battery`, `/hud/gps`, `/hud/race` | Telemetry HUD (combined, or one block per page) |
 | `/setup` | Receiver screen: 3D quad, channel monitor, learn-by-moving assignment |
 | `/modes` | Pick which OBS scene a switch selects (ranges per scene, sorted by priority) |
 | `/overlay` | The plain panel with two sticks, ARM/flip lamps and telemetry |

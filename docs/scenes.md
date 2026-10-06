@@ -10,7 +10,7 @@ button for an instant replay, and let go to return.
 
 1. **Turn on OBS's WebSocket server**: in OBS, *Tools, WebSocket Server Settings, Enable WebSocket server*. The default port is 4455. A password is
    optional; if you set one you will enter it below. (OBS 28 and newer have this built in.)
-2. Open **`http://127.0.0.1:8765/modes`**, choose **Connection...**, check the host and port, tick **Connect to OBS** and press **Save & connect**.
+2. Open **`http://127.0.0.1:47613/modes`**, choose **Connection...**, check the host and port, tick **Connect to OBS** and press **Save & connect**.
    When it works, the line at the top turns green and shows OBS's version and the live scene, and **every OBS scene appears as a mode**.
 3. For a scene, press **Add Range**, choose the **AUX** channel of your switch, and set the range with the two handles (drag them, click the bar,
    or use the arrow keys: left/right 25, PageUp/PageDown 100, Home/End). The **orange marker** is where your switch is right now.

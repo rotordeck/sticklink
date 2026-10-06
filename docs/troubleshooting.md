@@ -2,7 +2,7 @@
 
 ## The radio sends nothing
 
-Open `http://127.0.0.1:8765/api/v1/status`: `samples` stays 0 and the overlay says *RADIO DATA PAUSED*. Check, in this order:
+Open `http://127.0.0.1:47613/api/v1/status`: `samples` stays 0 and the overlay says *RADIO DATA PAUSED*. Check, in this order:
 
 1. **Is another program reading the same serial port?** A second Sticklink, a serial terminal, a flashing tool: two readers split the
    data and each sees (almost) nothing, and Sticklink may log "multiple access on port". Close the others. This is the

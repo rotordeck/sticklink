@@ -115,11 +115,14 @@ class GpsApiTests(ApiCase):
             self.assertEqual((r['hud']['layout'], r['hud']['cells'], r['hud']['map']['provider']), ('row', 6, 'none'))
             self.assertEqual(r['hud']['map']['zoom'], 'auto', 'untouched map settings survive')
             r = await self.call(client, 'PATCH', '/api/v1/settings', json=dict(hud=dict(blocks=dict(gps=False), style='hacker')))
-            self.assertEqual((r['hud']['blocks'], r['hud']['layout']), (dict(link=True, battery=True, gps=False, status=True), 'row'))
+            self.assertEqual((r['hud']['blocks'], r['hud']['layout']), (dict(link=True, battery=True, gps=False, status=True, race=True), 'row'))
+            r = await self.call(client, 'PATCH', '/api/v1/settings', json=dict(hud=dict(race=dict(laps=5))))
+            self.assertEqual(r['hud']['race'], dict(laps=5))
             r = await self.call(client, 'PATCH', '/api/v1/settings', json=dict(hud=dict(style=None)))
             self.assertIsNone(r['hud']['style'])
             for bad in (dict(layout='diagonal'), dict(cells=12), dict(map=dict(provider='bing')),
-                        dict(map=dict(customUrl='http://evil.example/{z}/{x}/{y}.png')), dict(blocks=dict(map=True))):
+                        dict(map=dict(customUrl='http://evil.example/{z}/{x}/{y}.png')), dict(blocks=dict(map=True)),
+                        dict(race=dict(laps=11)), dict(race=dict(laps='3')), dict(race=dict(speed=1))):
                 err = await self.call(client, 'PATCH', '/api/v1/settings', status=400, json=dict(hud=bad))
                 self.assertEqual(err['error']['code'], 'invalid_settings')
             full = copy.deepcopy(DEFAULTS); full['hud']['cells'] = 3

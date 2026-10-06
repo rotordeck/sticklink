@@ -102,6 +102,10 @@ def register(app, server):
         pipe.state.reset_gps()
         return ok(track_body())
 
+    async def race_reset(request):
+        pipe.state.race.reset()
+        return ok(pipe.state.race.snapshot())
+
     # ------------------------------------------------------------ OBS scenes
     obs, engine, scene_store = server.obs, server.scenes, server.scene_store
 
@@ -262,6 +266,7 @@ def register(app, server):
         ('GET', '/status', status), ('GET', '/state', state), ('GET', '/controls', controls),
         ('GET', '/telemetry', telemetry), ('GET', '/telemetry/{sensor}', sensor),
         ('GET', '/gps', gps), ('GET', '/gps/track', gps_track), ('DELETE', '/gps/track', gps_track_clear),
+        ('POST', '/race/reset', race_reset),
         ('GET', '/obs', obs_status), ('PATCH', '/obs/connection', obs_connection), ('POST', '/obs/scene', obs_scene),
         ('GET', '/scene-modes', modes), ('PUT', '/scene-modes', modes_put), ('GET', '/scene-modes/state', modes_state),
         ('POST', '/scene-modes/apply', modes_apply),

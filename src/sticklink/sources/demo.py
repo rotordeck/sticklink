@@ -44,7 +44,9 @@ class DemoSource(Source):
             roll, pitch = int(math.sin(t*1.9)*850), int(math.cos(t*1.4)*700)
             yaw, thr = int(math.sin(t*0.9)*700), int(-250+math.sin(t*0.6)*650)
             arm = 1024 if t % 16 > 2 else -1024
-            flip = 1024 if 14 < t % 16 < 15 else -1024
+            c = t % 16  # race timer: start tap, two lap taps, then a double tap to stop (the result stays until the next start tap)
+            tap = any(a < c < a + 0.15 for a in (4, 7.4, 11.2, 13, 13.3))
+            flip = 1024 if tap else -1024
             emit(t, 'S', roll, pitch, yaw, thr, arm, flip)
             if int(t*30) % 3 == 0:  # CH1-4 = A E T R like the FPV DRONE model, CH5 arm, CH8 flip
                 outputs = [roll, pitch, thr, yaw, arm, 0, 0, flip] + [0]*8

@@ -1,13 +1,13 @@
 // Where each HUD block goes. Blocks are designed at a fixed size and scaled uniformly, so they never distort.
-export type Block = 'link' | 'battery' | 'gps' | 'status';
+export type Block = 'link' | 'battery' | 'gps' | 'status' | 'race';
 export interface Rect { x: number; y: number; w: number; h: number }
 export interface Placed extends Rect { scale: number } // scale applies to the block's design size
 
 /** Design size of every block, in design units. */
 export const DESIGN: Record<Block, { w: number; h: number }> = {
-  link: { w: 400, h: 280 }, battery: { w: 400, h: 250 }, gps: { w: 560, h: 420 }, status: { w: 560, h: 110 },
+  link: { w: 400, h: 280 }, battery: { w: 400, h: 250 }, gps: { w: 560, h: 420 }, status: { w: 560, h: 110 }, race: { w: 560, h: 300 },
 };
-const ORDER: Block[] = ['link', 'battery', 'gps', 'status'];
+const ORDER: Block[] = ['link', 'battery', 'gps', 'status', 'race'];
 const REF = { w: 1920, h: 1080 };
 
 const place = (block: Block, x: number, y: number, scale: number): Placed => ({ x, y, w: DESIGN[block].w * scale, h: DESIGN[block].h * scale, scale });
@@ -31,6 +31,7 @@ export function layoutHud(layout: 'corners' | 'row' | 'column', enabled: Block[]
       battery: [m, H - m - DESIGN.battery.h * s],
       gps: [W - m - DESIGN.gps.w * s, H - m - DESIGN.gps.h * s],
       status: [W - m - DESIGN.status.w * s, m],
+      race: [(W - DESIGN.race.w * s) / 2, m], // top centre, between Link and Status
     };
     for (const b of blocks) out[b] = place(b, corner[b][0], corner[b][1], s);
     return out;

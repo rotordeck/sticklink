@@ -3,7 +3,7 @@
 # The package must be installed non-editable so its data files (web UI, fonts, Swagger UI, radio script) are collected.
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
-datas = collect_data_files('sticklink')
+datas = collect_data_files('sticklink') + collect_data_files('customtkinter')
 hiddenimports = collect_submodules('serial') + collect_submodules('sticklink')
 
 import os

@@ -11,13 +11,38 @@ from .sources.demo import DemoSource
 from .sources.serial_port import SerialSource
 
 HOST = '127.0.0.1'
+PAGES = (('Overlay for OBS', '/fx'), ('Setup', '/setup'), ('Scene switching', '/modes'),
+         ('Telemetry HUD', '/hud'), ('API docs', '/docs'))
+
+
+def running_sticklink(port):
+    """The version of the Sticklink already serving on this port, or None when the port belongs to something else."""
+    import json
+    from urllib.request import urlopen
+    try:
+        with urlopen(f'http://127.0.0.1:{port}/api/v1/status', timeout=1.5) as reply:
+            return str(json.load(reply)['version'])
+    except Exception:
+        return None
+
+
+def describe_status(snap):
+    """(level, text) for a pipeline snapshot: level is 'wait', 'ok'."""
+    state = snap['status']
+    if state == 'demo':
+        return 'ok', 'Running with demo data (no radio)'
+    if state == 'live':
+        return 'ok', 'Radio connected: sticks are live'
+    if state == 'paused':
+        return 'wait', 'Radio connected, but no data. Is the DDSTK script running? (see Radio setup)'
+    return 'wait', 'Waiting for the radio' + (f' ({snap["error"]})' if snap.get('error') else '')
 
 
 class Service:
     """start(port=None) serves demo data, start('COM5') reads that radio. Never raises from the UI thread's view
     except for start(): it raises OSError when the HTTP port is taken."""
 
-    def __init__(self, http_port=8765, **server_options):
+    def __init__(self, http_port=47613, **server_options):
         self.http_port = http_port
         self.server_options = server_options  # e.g. fx_config=, scene_store=, theme_store= (tests keep them out of the real config)
         self.pipeline = None
@@ -72,12 +97,4 @@ class Service:
         """(level, text): level is 'off', 'wait', 'ok' or 'bad'."""
         if not self.running:
             return 'off', 'Stopped'
-        snap = self.pipeline.snapshot()
-        state = snap['status']
-        if state == 'demo':
-            return 'ok', 'Running with demo data (no radio)'
-        if state == 'live':
-            return 'ok', 'Radio connected: sticks are live'
-        if state == 'paused':
-            return 'wait', 'Radio connected, but no data. Is the DDSTK script running? (see Radio setup)'
-        return 'wait', 'Waiting for the radio' + (f' ({snap["error"]})' if snap.get('error') else '')
+        return describe_status(self.pipeline.snapshot())

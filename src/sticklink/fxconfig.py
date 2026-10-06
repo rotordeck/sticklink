@@ -29,7 +29,8 @@ DEFAULTS = dict(
 MAPPING_KEYS = ('roll', 'pitch', 'yaw', 'throttle', 'arm', 'flip')
 DEFAULTS['hud'] = dict(
     style=None, layout='corners', cells=4,
-    blocks=dict(link=True, battery=True, gps=True, status=True),
+    blocks=dict(link=True, battery=True, gps=True, status=True, race=True),
+    race=dict(laps=3),
     units=dict(speed='kmh', alt='m'),
     map=dict(provider='osm', customUrl='', attribution='', zoom='auto', follow=True),
 )
@@ -135,6 +136,11 @@ def _hud(data):
                 raise ValueError('follow must be a boolean')
             clean['follow'] = m['follow']
         out['map'] = clean
+    if 'race' in data:
+        r = data['race']
+        if not isinstance(r, dict) or set(r) - set(DEFAULTS['hud']['race']):
+            raise ValueError('hud.race takes ' + ', '.join(DEFAULTS['hud']['race']))
+        out['race'] = dict(laps=int(_num(r['laps'], 0, 10))) if 'laps' in r else {}
     return out
 
 

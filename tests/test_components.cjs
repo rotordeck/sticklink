@@ -6,7 +6,7 @@ const web = path.join(__dirname,'../src/sticklink/web');
 const source = ['client.js','components.js'].map(f=>fs.readFileSync(path.join(web,f),'utf8')).join('\n')
   .replace(/^import .*$/gm,'').replace(/^export /gm,'');
 function setup(query='') {
-  const dom = new JSDOM('<body></body>',{url:'http://127.0.0.1:8765/overlay'+query,runScripts:'outside-only'});
+  const dom = new JSDOM('<body></body>',{url:'http://127.0.0.1:47613/overlay'+query,runScripts:'outside-only'});
   const w=dom.window; let now=0; w.performance.now=()=>now;
   w.setInterval=()=>1; w.clearInterval=()=>{}; w.setTimeout=()=>1; w.clearTimeout=()=>{};
   class FakeWS {

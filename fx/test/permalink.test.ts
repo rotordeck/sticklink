@@ -43,8 +43,8 @@ test('HUD links carry the HUD settings, not the stick-overlay ones, and round-tr
 
 test('the permanent URL is origin + path + the parameter, and the address bar is never part of it', () => {
   const cfg = copy(DEFAULTS); cfg.style = 'inferno';
-  const url = permalink('http://127.0.0.1:8765', '/hud/gps', cfg, 'hud');
-  assert.ok(url.startsWith('http://127.0.0.1:8765/hud/gps?cfg=v1.'));
+  const url = permalink('http://127.0.0.1:47613', '/hud/gps', cfg, 'hud');
+  assert.ok(url.startsWith('http://127.0.0.1:47613/hud/gps?cfg=v1.'));
   assert.ok(!/[+/=\s]/.test(url.split('?cfg=')[1]), 'base64url: safe in a URL without escaping');
   assert.equal(new URL(url).searchParams.get('cfg'), encodeConfig(cfg, 'hud'));
 });

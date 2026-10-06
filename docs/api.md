@@ -1,6 +1,6 @@
 # REST API
 
-Interactive documentation (Swagger UI, offline): <http://127.0.0.1:8765/docs>. The machine-readable OpenAPI 3.0 description
+Interactive documentation (Swagger UI, offline): <http://127.0.0.1:47613/docs>. The machine-readable OpenAPI 3.0 description
 is at `/api/v1/openapi.json`. A test checks that every route is in that description and that real responses match its schemas.
 
 ![Swagger UI](img/swagger.png)
@@ -15,6 +15,7 @@ is at `/api/v1/openapi.json`. A test checks that every route is in that descript
 | | `GET /api/v1/telemetry`, `/telemetry/{sensor}` | All sensors, or one by name (`RQly`, `RxBt`, ...) |
 | | `GET /api/v1/channels`, `/channels/{n}` | Mixer outputs CH1-CH16, or one (1-16) |
 | | `GET /api/v1/gps` | Position, home, distance and bearing from home, fix state |
+| | `POST /api/v1/race/reset` | Clear the race timer (its state is `race` in `/state`) |
 | | `GET`, `DELETE /api/v1/gps/track` | The flown track (thinned to one point per 2 m, at most 5000); forget track and home |
 | | `GET /api/v1/themes` | Installed overlay themes ([themes](themes.md)) |
 | Settings | `GET /api/v1/styles` | The overlay styles |
@@ -33,20 +34,20 @@ is at `/api/v1/openapi.json`. A test checks that every route is in that descript
 ## Examples
 
 ```bash
-curl localhost:8765/api/v1/controls
-curl localhost:8765/api/v1/channels/8
-curl localhost:8765/api/v1/gps
-curl -X PATCH localhost:8765/api/v1/settings -H 'content-type: application/json' -d '{"hud":{"layout":"row","cells":6,"map":{"provider":"none"}}}'
-curl -X PATCH localhost:8765/api/v1/settings -H 'content-type: application/json' -d '{"style":"hacker","mode":2}'
-curl -X POST   localhost:8765/api/v1/recording -H 'content-type: application/json' -d '{"label":"first-flight"}'
-curl -X DELETE localhost:8765/api/v1/recording
-curl localhost:8765/api/v1/recordings/20261006-143000-first-flight.jsonl/report
+curl localhost:47613/api/v1/controls
+curl localhost:47613/api/v1/channels/8
+curl localhost:47613/api/v1/gps
+curl -X PATCH localhost:47613/api/v1/settings -H 'content-type: application/json' -d '{"hud":{"layout":"row","cells":6,"map":{"provider":"none"}}}'
+curl -X PATCH localhost:47613/api/v1/settings -H 'content-type: application/json' -d '{"style":"hacker","mode":2}'
+curl -X POST   localhost:47613/api/v1/recording -H 'content-type: application/json' -d '{"label":"first-flight"}'
+curl -X DELETE localhost:47613/api/v1/recording
+curl localhost:47613/api/v1/recordings/20261006-143000-first-flight.jsonl/report
 ```
 
 ```python
 import json, websockets, asyncio          # pip install websockets
 async def main():
-    async with websockets.connect("ws://127.0.0.1:8765/ws") as ws:
+    async with websockets.connect("ws://127.0.0.1:47613/ws") as ws:
         async for message in ws:
             state = json.loads(message)
             print(state["status"], state["controls"])

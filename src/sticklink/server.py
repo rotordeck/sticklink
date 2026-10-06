@@ -104,7 +104,7 @@ class OverlayServer:
         app.router.add_get('/setup', setup)
         app.router.add_get('/docs', docs)
         app.router.add_get('/modes', modes_page)
-        for page in ('/hud', '/hud/link', '/hud/battery', '/hud/gps', '/hud/status'):
+        for page in ('/hud', '/hud/link', '/hud/battery', '/hud/gps', '/hud/status', '/hud/race'):
             app.router.add_get(page, hud)
         app.router.add_get('/', overlay)
         app.router.add_get('/overlay', overlay)

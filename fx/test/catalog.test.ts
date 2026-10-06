@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { badge, buildBattery, buildGps, buildLink, cellLevel, formatClock, levelOf, others, type Telemetry } from '../src/hud/catalog.ts';
+import { badge, buildBattery, buildGps, buildLink, cellLevel, formatClock, levelOf, others, raceTime, type Telemetry } from '../src/hud/catalog.ts';
 import { History } from '../src/hud/history.ts';
 import { DEFAULT_HUD, cleanHud } from '../src/config.ts';
 
@@ -122,4 +122,12 @@ test('cleanHud accepts good input and keeps the base for anything invalid', () =
   assert.equal(cleanHud({ map: { zoom: 99 } }, DEFAULT_HUD, styles).map.zoom, 19);
   assert.equal(cleanHud({ map: { zoom: 'auto' } }, { ...DEFAULT_HUD, map: { ...DEFAULT_HUD.map, zoom: 12 } }, styles).map.zoom, 'auto');
   assert.deepEqual(cleanHud('junk', DEFAULT_HUD, styles), DEFAULT_HUD);
+});
+
+test('raceTime splits seconds and tenths from the last two digits, and adds minutes from 1:00', () => {
+  assert.deepEqual(raceTime(0), { main: '0.0', small: '00' });
+  assert.deepEqual(raceTime(12347), { main: '12.3', small: '47' });
+  assert.deepEqual(raceTime(59999), { main: '59.9', small: '99' }); // never rounds up into 60.0
+  assert.deepEqual(raceTime(62050), { main: '1:02.0', small: '50' });
+  assert.deepEqual(raceTime(-5), { main: '0.0', small: '00' });
 });
