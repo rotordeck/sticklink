@@ -11,7 +11,7 @@ from .fxconfig import STYLE_INFO, validate
 from .openapi import build
 from .recorder import RecorderError
 
-SENSOR = re.compile(r'[A-Za-z0-9_-]{1,24}')
+SENSOR = re.compile(r'[A-Za-z0-9_%-]{1,24}')
 LOCAL_HOSTS = {'localhost', '127.0.0.1', '[::1]'}
 STATUS_FOR = dict(already_recording=409, not_recording=409, recording_active=409, invalid_label=400,
                   invalid_name=400, not_found=404)
@@ -77,11 +77,26 @@ def register(app, server):
     async def sensor(request):
         name = request.match_info['sensor']
         if not SENSOR.fullmatch(name):
-            return error(400, 'invalid_sensor', 'sensor names are 1-24 characters of A-Z a-z 0-9 _ -')
+            return error(400, 'invalid_sensor', 'sensor names are 1-24 characters of A-Z a-z 0-9 _ % -')
         item = snap()['telemetry'].get(name)
         if item is None:
             return error(404, 'not_found', f'no sensor named {name}')
         return ok(dict(name=name, **item))
+
+    async def gps(request):
+        return ok(snap()['gps'])
+
+    def track_body():
+        st = pipe.state
+        return dict(home=None if st.home is None else dict(lat=st.home[0], lon=st.home[1]),
+                    points=[[round(a, 6), round(b, 6)] for a, b in st.track])
+
+    async def gps_track(request):
+        return ok(track_body())
+
+    async def gps_track_clear(request):
+        pipe.state.reset_gps()
+        return ok(track_body())
 
     async def channels(request):
         return ok(dict(channels=snap()['channels']))
@@ -176,6 +191,7 @@ def register(app, server):
     routes = [
         ('GET', '/status', status), ('GET', '/state', state), ('GET', '/controls', controls),
         ('GET', '/telemetry', telemetry), ('GET', '/telemetry/{sensor}', sensor),
+        ('GET', '/gps', gps), ('GET', '/gps/track', gps_track), ('DELETE', '/gps/track', gps_track_clear),
         ('GET', '/channels', channels), ('GET', '/channels/{n}', channel), ('GET', '/styles', styles),
         ('GET', '/settings', settings),
         ('PUT', '/settings', settings_write(fx.replace)), ('PATCH', '/settings', settings_write(fx.save)),

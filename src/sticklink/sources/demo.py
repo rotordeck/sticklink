@@ -5,6 +5,25 @@ import time
 from .base import Source
 
 
+HOME = (51.054300, 3.717400)
+
+
+def telemetry(t, thr):
+    """Plausible values for every sensor an ELRS + Betaflight quad sends (names as EdgeTX shows them)."""
+    load = (thr + 1024) / 2048  # 0..1, from the demo throttle
+    volts = 4.18*4 - 0.9*load - (t % 600)/600*0.9  # a 4S pack that sags under load and drains slowly
+    amps = 3 + 55*load
+    used = (t * 6.5) % 1800
+    return [('RQly', round(max(60, 99 - 6*abs(math.sin(t*0.13)) - 20*max(0, math.sin(t*0.05)-0.93)))), ('RSNR', round(11 + 6*math.sin(t*0.4))),
+            ('1RSS', round(-58 - 8*math.sin(t*0.3))), ('2RSS', round(-61 - 9*math.sin(t*0.27))),
+            ('TPWR', 250), ('RFMD', 7), ('ANT', 0 if int(t) % 8 < 4 else 1), ('TRSS', round(-66 - 5*math.sin(t*0.2))),
+            ('TQly', 100), ('TSNR', round(9 + 4*math.sin(t*0.3))),
+            ('RxBt', round(volts, 2)), ('Curr', round(amps, 1)), ('Capa', round(used)), ('Bat%', max(0, round(100 - used/1800*100))),
+            ('Sats', 14), ('GSpd', round(8 + 40*load, 1)), ('Alt', round(35 + 25*math.sin(t*0.2), 1)), ('VSpd', round(5*math.cos(t*0.2), 1)),
+            ('Hdg', round((t*20) % 360, 1)), ('Ptch', round(0.2*math.sin(t*0.7), 3)), ('Roll', round(0.3*math.sin(t*0.9), 3)),
+            ('Yaw', round(((t*0.3) % 6.28) - 3.14, 3))]
+
+
 class DemoSource(Source):
     """Synthetic sticks, ARM/flip switches and telemetry. No radio needed."""
     label = 'demo'
@@ -32,6 +51,10 @@ class DemoSource(Source):
                 emit(t, 'C', 1, *outputs[:8])
                 emit(t, 'C', 9, *outputs[8:])
             if int(t*30) % 6 == 0:
-                emit(t, 'T', 'RQly', 98, 1, 1)
-                emit(t, 'T', 'RxBt', round(4.2-(t % 120)/200, 2), 1, 1)
+                for name, value in telemetry(t, thr):
+                    emit(t, 'T', name, value, 1, 1)
+            if int(t*30) % 15 == 0:  # GPS about 2 Hz: a lazy circle around a fixed spot, pilot position unknown
+                lat = HOME[0] + 0.0012*math.sin(t*0.35)
+                lon = HOME[1] + 0.0018*math.sin(t*0.35)*math.cos(t*0.35) + 0.0006*math.sin(t*0.9)
+                emit(t, 'G', f'{lat:.6f}', f'{lon:.6f}', '0', '0')
             await asyncio.sleep(0.03)

@@ -75,12 +75,17 @@ class OverlayServer:
         async def setup(request):
             return web.FileResponse(WEB/'setup.html')
 
+        async def hud(request):
+            return web.FileResponse(WEB/'hud.html')
+
         async def docs(request):
             return web.FileResponse(WEB/'docs.html')
         api.register(app, self)
         app.router.add_get('/fx', fx)
         app.router.add_get('/setup', setup)
         app.router.add_get('/docs', docs)
+        for page in ('/hud', '/hud/link', '/hud/battery', '/hud/gps', '/hud/status'):
+            app.router.add_get(page, hud)
         app.router.add_get('/', overlay)
         app.router.add_get('/overlay', overlay)
         app.router.add_static('/assets', WEB, show_index=False)

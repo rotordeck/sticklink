@@ -10,6 +10,13 @@ Sticklink bundles or builds on the following. Licence texts are shipped next to 
 | Fonts: Bungee, Orbitron (900), Fredoka (700), VT323, via [Fontsource](https://fontsource.org) | SIL Open Font License 1.1 | `src/sticklink/web/fonts/`, texts in `fonts/LICENSES/` |
 | Stick overlay renderer (`draw.ts`, `style.ts`, `layout.ts`) | Own code, copied unchanged from [rotordeck/stickcam](https://github.com/rotordeck/stickcam) @ `ca82bf34` | `fx/src/render/`, see `fx/VENDORED_FROM` |
 
+## Map tiles (loaded at runtime, not bundled)
+
+The GPS block can show map tiles. Map data is (c) OpenStreetMap contributors, available under the [Open Database Licence](https://www.openstreetmap.org/copyright).
+Tiles are requested from the provider the user selects: the OpenStreetMap standard tile servers (subject to the
+[OSMF Tile Usage Policy](https://operations.osmfoundation.org/policies/tiles/)), CARTO basemaps (free for non-commercial use only; see CARTO's terms), or a
+custom server. Each provider's credit is always drawn on the map.
+
 ## Python dependencies (installed or frozen into the binaries)
 
 | Package | Licence |

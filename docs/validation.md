@@ -32,6 +32,14 @@ What has been tested, on what, and what has not. Dates are 2026-10-06 unless not
   interpolation 15 % / 4.2 (rejected: adds lag); redrawing history after each reading, no delay, **11 % / 9.4**.
 - OBS 32 on Wayland with an AMD GPU crashed when browser sources loaded with hardware acceleration on (see [OBS setup](obs-setup.md)).
 
+## Telemetry HUD and the extended radio script (not yet run on the radio)
+
+The HUD, the broader sensor list and the GPS record were developed against **simulated data** (the demo source) and a **mock EdgeTX**. On the real radio
+only `RQly` has been seen live so far; battery reads were a stuck 3.7 V, and no GPS or attitude sensor has been received (the test quad has neither).
+To close this gap: copy the current script, **Discover new sensors** on the radio, restart it, then check `check-log` and `/api/v1/telemetry`.
+Open items: whether `getValue("GPS")` returns a table on this EdgeTX build (documented, unverified), whether attitude values are radians as
+EdgeTX documents, and that the longer script keeps the 20 Hz control rate on the Pocket.
+
 ## Automated tests
 
 - **Python**: protocol and framing, state (resets, gaps, aging), recording and replay, `check-log`, settings storage and
@@ -40,6 +48,7 @@ What has been tested, on what, and what has not. Dates are 2026-10-06 unless not
 - **TypeScript**: live feed (events, smooth history, stick modes), mapping and the learn detector, settings cleaning.
 - **Browser**: the classic overlay in jsdom; `/fx`, `/setup`, `/docs` rendered in headless Chrome (including a real double-click,
   Learn, and settings saved to the server).
+- **HUD in headless Chrome**: all pages, four style/layout combinations and the map: only visible tiles requested (no duplicates), the browser's Referer sent, no retry storm when tiles fail, offline fallback drawn.
 - **Radio script**: syntax checked with `luac`; run against mocked EdgeTX functions (normal, failing reads, failing channel lookup)
   with every emitted line accepted by the real parser.
 - **Frozen binary** (Linux): all pages, assets, API and a recording exercised against the PyInstaller build.

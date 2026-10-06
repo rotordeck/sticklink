@@ -13,6 +13,7 @@ characters is discarded. `tick` is the radio's clock in **10 ms** units; `seq` i
 | `T` | `T,tick,seq,sensor,value,current,fresh` | A telemetry sensor; `current`/`fresh` are 0/1 (0,0 means "lost") |
 | `C` | `C,tick,seq,first,v1,...,v8` | Mixer outputs `first`..`first+7`; `first` is 1 or 9, so all 16 channels take two lines |
 | `D` | `D,tick,seq,text` | A diagnostic note from the script (up to 60 characters of `A-Za-z0-9 _.:-`) |
+| `G` | `G,tick,seq,lat,lon,plat,plon` | GPS position and the pilot (radio) position in decimal degrees, positive north / east; `0,0` means none. About twice a second |
 
 Examples:
 
@@ -22,11 +23,13 @@ S,103,1,120,-47,-1024,83,-1018,1024
 E,103,2,ARM,0
 T,120,3,RQly,100,1,1
 C,125,4,1,1,3,-867,7,-1024,-1024,-1024,-1024
+G,130,5,51.054300,3.717400,0.000000,0.000000
 D,5,5,channels resolved 16
 ```
 
 How the computer treats it:
 
+- Sensor names are 1 to 24 characters of `A-Za-z0-9_%-` (EdgeTX has names like `Bat%`). Coordinates must be plain decimals (no exponents, `nan`), within +-90 / +-180.
 - Malformed, oversized or out-of-range lines are counted as invalid and skipped; partial lines are buffered.
 - A clock going backwards, a new `H`, or a large backwards jump in `seq` counts as a radio restart (a new *session*).
 - Gaps in `seq` are counted as lost records. A repeated `seq` is ignored.

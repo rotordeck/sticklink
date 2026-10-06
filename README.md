@@ -10,11 +10,18 @@ overlays, and records every session so you can check and reuse the data later.
   <img src="docs/img/fx-arcade.png" width="32%" alt="Arcade style">
   <img src="docs/img/fx-hacker.png" width="32%" alt="Hacker style">
 </p>
+<p align="center">
+  <img src="docs/img/hud-corners-neon.png" width="49%" alt="Telemetry HUD, neon">
+  <img src="docs/img/hud-corners-hacker.png" width="49%" alt="Telemetry HUD, hacker">
+</p>
 
 ## What you get
 
 - **Effects overlay** (`/fx`): eight styles (Clean, Minimal, Neon, Arcade, Synthwave, Inferno, Unicorn, Hacker) with glowing
   trails, sparks, shockwaves and live throttle timers. Trails are smooth curves with no added delay.
+- **Telemetry HUD** (`/hud`): **Link**, **Battery**, **GPS** and **Status** blocks as badges, in the same eight styles. GPS shows a live
+  map with your track, home marker and distance. Each block is also its own page (`/hud/link`, `/hud/battery`, `/hud/gps`), so you can
+  put them in OBS as separate sources. It shows what your radio really receives (see [limits](#status-and-honest-limits)).
 - **Receiver setup page** (`/setup`): a live 3D quad, stick bars and a 16-channel monitor, like Betaflight Configurator's
   receiver tab. Press **Learn** and move a stick or switch to assign roll, pitch, yaw, throttle, ARM and Crash Flip, so a
   swapped or reversed stick is a ten-second fix.
@@ -51,6 +58,7 @@ Prefer Python? `pip install sticklink-<version>-py3-none-any.whl` (from the rele
 | Address / command | What it does |
 |---|---|
 | `/fx` | Effects overlay for OBS (double-click for settings) |
+| `/hud`, `/hud/link`, `/hud/battery`, `/hud/gps` | Telemetry HUD (combined, or one block per page) |
 | `/setup` | Receiver screen: 3D quad, channel monitor, learn-by-moving assignment |
 | `/overlay` | The plain panel with two sticks, ARM/flip lamps and telemetry |
 | `/docs` | Swagger UI for the REST API (spec at `/api/v1/openapi.json`) |
@@ -84,7 +92,11 @@ More in [docs/cli.md](docs/cli.md).
   reports sticks at about **20 Hz** (EdgeTX runs function scripts every 50 ms); the overlay smooths between readings.
 - The Windows and macOS builds are produced and smoke-tested by CI (unit tests, integration tests and a run of the frozen
   program), but they have **not been tried with a radio** on those systems yet.
-- The overlay shows what sticks and switches can drive: trails, sparks, snaps, punch-outs, full-throttle and hang-time
+- The **HUD shows only telemetry your radio actually receives**. Betaflight does not send motor outputs, RPM, PID or gyro over
+  the radio link (those live in the blackbox on the quad), so there is no live motor screen. So far only **link quality (`RQly`) has been seen live on a real
+  radio**; the other link sensors, battery, GPS and attitude were tested with simulated data until the radio script is updated and the quad sends them.
+- The GPS map downloads tiles from the internet (OpenStreetMap by default); see [overlay guide](docs/overlay-guide.md#telemetry-hud).
+- The effects overlay shows what sticks and switches can drive: trails, sparks, snaps, punch-outs, full-throttle and hang-time
   timers, arm/disarm. Flips, rolls and crash detection in stickcam need gyro and accelerometer data that the radio does not have.
 - Sticklink only **reads** from the radio. It never writes to it and never changes ExpressLRS or model settings.
 - Unsigned downloads: macOS Gatekeeper and Windows SmartScreen will warn once ([getting started](docs/getting-started.md)).

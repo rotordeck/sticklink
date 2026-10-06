@@ -1,6 +1,6 @@
 """OpenAPI 3.0 description of the REST API (served at /api/v1/openapi.json, browsable at /docs)."""
 from . import __version__
-from .fxconfig import DEFAULTS, STYLES
+from .fxconfig import DEFAULTS, HUD_LAYOUTS, MAP_PROVIDERS, STYLES
 
 CHANNEL = dict(type='integer', minimum=-2048, maximum=2048, description='Raw channel value, normally -1024..1024')
 SRC = dict(type='string', pattern=r'^(in:(roll|pitch|yaw|throttle|arm|crash)|ch:([1-9]|1[0-6]))$',
@@ -41,6 +41,18 @@ SCHEMAS = {
                        age_ms=dict(type='integer'))),
     'Diagnostics': obj(dict(invalid=dict(type='integer'), missing=dict(type='integer', description='Lost records (sequence gaps)'),
                             resets=dict(type='integer'), samples=dict(type='integer'))),
+    'LatLon': obj(dict(lat=dict(type='number', minimum=-90, maximum=90), lon=dict(type='number', minimum=-180, maximum=180))),
+    'Gps': obj(dict(
+        fix=dict(type='boolean', description='A position was received in the last 3 seconds'),
+        lat=nullable(dict(type='number', minimum=-90, maximum=90)), lon=nullable(dict(type='number', minimum=-180, maximum=180)),
+        age_ms=nullable(dict(type='integer', description='Age of the last position')),
+        home=nullable(ref('LatLon')), distance_m=nullable(dict(type='number', description='Great-circle distance from home')),
+        bearing_deg=nullable(dict(type='number', minimum=0, maximum=360, description='Compass bearing from home to the quad (0 = north); add 180 for the way home')),
+        track_points=dict(type='integer')),
+        description='Position from the radio script `G` record (EdgeTX GPS sensor). Home is the pilot position if the radio has one, else the first fix.'),
+    'GpsTrack': obj(dict(home=nullable(ref('LatLon')),
+                         points=dict(type='array', items=dict(type='array', items=dict(type='number'), minItems=2, maxItems=2),
+                                     description='[lat, lon] pairs, thinned to one per 2 m, at most 5000'))),
     'State': obj(dict(
         schema=dict(type='integer', example=1), session=dict(type='integer', description='Increments on every radio restart/reconnect'),
         status=dict(type='string', enum=['live', 'demo', 'paused', 'disconnected']),
@@ -49,7 +61,7 @@ SCHEMAS = {
         channels=nullable(dict(type='array', items=CHANNEL, minItems=16, maxItems=16,
                                description='Mixer outputs CH1..CH16; `null` until the radio script reports them')),
         notes=dict(type='array', items=dict(type='string'), description='Diagnostics sent by the radio script (newest last)'),
-        commands=ref('Commands'), telemetry=dict(type='object', additionalProperties=ref('Sensor')),
+        commands=ref('Commands'), gps=ref('Gps'), telemetry=dict(type='object', additionalProperties=ref('Sensor')),
         tick=nullable(dict(type='integer', description='Radio clock, 10 ms ticks')),
         seq=nullable(dict(type='integer')), age_ms=nullable(dict(type='integer', description='Age of the newest control sample')),
         error=dict(type='string'), diagnostics=ref('Diagnostics'),
@@ -73,6 +85,27 @@ SCHEMAS = {
     'PartialMapping': obj(dict(roll=ref('AxisMap'), pitch=ref('AxisMap'), yaw=ref('AxisMap'), throttle=ref('AxisMap'),
                                arm=nullable(ref('SwitchMap')), flip=nullable(ref('SwitchMap'))), required=False,
                           description='Only the entries named are changed'),
+    'HudMap': obj(dict(
+        provider=dict(type='string', enum=list(MAP_PROVIDERS), default='osm',
+                      description='`osm` = OpenStreetMap standard tiles (default); `carto-dark`/`carto-light` = CARTO basemaps (free for non-commercial use only); `custom` = your own tile server; `none` = no map, just the track'),
+        customUrl=dict(type='string', maxLength=300, default='', description='Tile URL for `custom`: https:// (or http://localhost) containing {z}, {x} and {y}'),
+        attribution=dict(type='string', maxLength=120, default='', description='Text shown on the map for `custom` tiles (plain text)'),
+        zoom=dict(oneOf=[dict(type='string', enum=['auto']), dict(type='integer', minimum=1, maximum=19)], default='auto',
+                  description='`auto` fits the track; a number is a fixed zoom level'),
+        follow=dict(type='boolean', default=True, description='Keep the map centred on the quad')), required=False),
+    'Hud': obj(dict(
+        style=nullable(dict(type='string', enum=list(STYLES), description='`null` = use the main overlay style')),
+        layout=dict(type='string', enum=list(HUD_LAYOUTS), default='corners', description='How blocks are arranged on the combined HUD'),
+        cells=dict(type='integer', minimum=1, maximum=8, default=4, description='Battery cell count, for per-cell voltage and warnings'),
+        blocks=obj(dict(link=dict(type='boolean'), battery=dict(type='boolean'), gps=dict(type='boolean'), status=dict(type='boolean'))),
+        units=obj(dict(speed=dict(type='string', enum=['kmh', 'mph']), alt=dict(type='string', enum=['m', 'ft']))),
+        map=ref('HudMap')), description='The combined HUD at `/hud` and its single-block pages `/hud/link`, `/hud/battery`, `/hud/gps`'),
+    'PartialHud': obj(dict(
+        style=nullable(dict(type='string', enum=list(STYLES))), layout=dict(type='string', enum=list(HUD_LAYOUTS)),
+        cells=dict(type='integer', minimum=1, maximum=8),
+        blocks=obj(dict(link=dict(type='boolean'), battery=dict(type='boolean'), gps=dict(type='boolean'), status=dict(type='boolean')), required=False),
+        units=obj(dict(speed=dict(type='string', enum=['kmh', 'mph']), alt=dict(type='string', enum=['m', 'ft'])), required=False),
+        map=ref('HudMap')), required=False),
     'Settings': obj(dict(
         style=dict(type='string', enum=list(STYLES), default=DEFAULTS['style']),
         chaos=dict(type='number', minimum=0, maximum=2, default=DEFAULTS['chaos'], description='Effect strength'),
@@ -81,12 +114,12 @@ SCHEMAS = {
         delay=dict(type='integer', minimum=0, maximum=5000, default=DEFAULTS['delay'], description='Extra overlay delay in ms, to match video'),
         invert=dict(type='array', items=dict(type='string', enum=['roll', 'pitch', 'yaw', 'throttle']), uniqueItems=True),
         size=dict(type='integer', minimum=240, maximum=2160, default=DEFAULTS['size'], description='Reference size in px (sets the OBS source size)'),
-        mapping=ref('Mapping'))),
+        mapping=ref('Mapping'), hud=ref('Hud'))),
     'PartialSettings': obj(dict(
         style=dict(type='string', enum=list(STYLES)), chaos=dict(type='number', minimum=0, maximum=2),
         mode=dict(type='integer', enum=[1, 2, 3, 4]), delay=dict(type='integer', minimum=0, maximum=5000),
         invert=dict(type='array', items=dict(type='string', enum=['roll', 'pitch', 'yaw', 'throttle'])),
-        size=dict(type='integer', minimum=240, maximum=2160), mapping=ref('PartialMapping')), required=False),
+        size=dict(type='integer', minimum=240, maximum=2160), mapping=ref('PartialMapping'), hud=ref('PartialHud')), required=False),
     'Style': obj(dict(id=dict(type='string', enum=list(STYLES)), name=dict(type='string'), blurb=dict(type='string'))),
     'Recording': obj(dict(active=dict(type='boolean'), name=nullable(dict(type='string', example='20261006-143000-test.jsonl')),
                           records=dict(type='integer'), started_unix=nullable(dict(type='number')),
@@ -126,8 +159,8 @@ def _json_body(schema, required=True):
 
 E400, E404, E409, E415 = (_err('Invalid request'), _err('Not found'), _err('Conflict with the current state'),
                           _err('Request body must be application/json'))
-SENSOR_PARAM = dict(name='sensor', **{'in': 'path'}, required=True, schema=dict(type='string', pattern='^[A-Za-z0-9_-]{1,24}$'),
-                    description='Sensor name as sent by the radio, e.g. `RQly`, `RxBt`')
+SENSOR_PARAM = dict(name='sensor', **{'in': 'path'}, required=True, schema=dict(type='string', pattern='^[A-Za-z0-9_%-]{1,24}$'),
+                    description='Sensor name as sent by the radio, e.g. `RQly`, `RxBt`, `Bat%`')
 CHANNEL_PARAM = dict(name='n', **{'in': 'path'}, required=True, schema=dict(type='integer', minimum=1, maximum=16),
                      description='Channel number 1-16')
 NAME_PARAM = dict(name='name', **{'in': 'path'}, required=True, schema=dict(type='string', pattern='^[A-Za-z0-9][A-Za-z0-9_.-]{0,80}\\.jsonl$'),
@@ -181,6 +214,15 @@ def build():
             '/api/v1/channels/{n}': {'get': {
                 'tags': ['Live'], 'operationId': 'getChannel', 'summary': 'One mixer output', 'parameters': [CHANNEL_PARAM],
                 'responses': {'200': _ok(obj(dict(channel=dict(type='integer'), value=nullable(CHANNEL)))), '400': E400}}},
+            '/api/v1/gps': {'get': {
+                'tags': ['Live'], 'operationId': 'getGps', 'summary': 'GPS position, home and distance',
+                'responses': {'200': _ok(ref('Gps'))}}},
+            '/api/v1/gps/track': {
+                'get': {'tags': ['Live'], 'operationId': 'getGpsTrack', 'summary': 'The flown track since the radio script started',
+                        'responses': {'200': _ok(ref('GpsTrack'))}},
+                'delete': {'tags': ['Live'], 'operationId': 'clearGpsTrack', 'summary': 'Forget the track and home point',
+                           'description': 'The next position becomes the new home. Also happens automatically when the radio script restarts.',
+                           'responses': {'200': _ok(ref('GpsTrack'), 'The (now empty) track')}}},
             '/api/v1/styles': {'get': {
                 'tags': ['Settings'], 'operationId': 'listStyles', 'summary': 'Available overlay styles',
                 'responses': {'200': _ok(dict(type='array', items=ref('Style')))}}},
@@ -192,7 +234,7 @@ def build():
                         'requestBody': _json_body(ref('Settings')),
                         'responses': {'200': _ok(ref('Settings')), '400': E400, '415': E415}},
                 'patch': {'tags': ['Settings'], 'operationId': 'updateSettings', 'summary': 'Change some settings',
-                          'description': 'Unknown keys are ignored. A partial `mapping` only changes the entries it names.',
+                          'description': 'Unknown keys are ignored. A partial `mapping` or `hud` only changes the entries it names.',
                           'requestBody': _json_body(ref('PartialSettings')),
                           'responses': {'200': _ok(ref('Settings')), '400': E400, '415': E415}},
                 'delete': {'tags': ['Settings'], 'operationId': 'resetSettings', 'summary': 'Reset to defaults',

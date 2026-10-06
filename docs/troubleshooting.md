@@ -57,6 +57,17 @@ The Pocket's script runs every 50 ms, so about 20 samples a second is normal. *M
 The receiver must be powered and linked; sensors only appear after the radio has discovered them. A battery voltage that
 never changes usually means the flight controller is not sending battery telemetry.
 
+## The HUD has empty blocks
+
+- **NO LINK DATA / NO BATTERY DATA**: the radio has not discovered those sensors, or the script on the radio is the old one that forwards only `RQly` and
+  `RxBt`. See [telemetry sensors](radio-setup.md#telemetry-sensors-and-gps). `/api/v1/telemetry` shows what is really arriving.
+- **Battery always red or wrong**: set **Battery cells** in the HUD settings to your pack; warnings are per cell.
+- **A battery voltage that never changes**: the flight controller is not sending live battery telemetry (a quad powered over USB has no battery).
+- **WAITING FOR GPS / NO FIX**: the flight controller must have GPS and send it on the radio link; indoors there is no fix. Check `/api/v1/gps`.
+- **The map is grey or says MAP OFFLINE**: tiles could not be loaded (no internet, blocked, or a wrong custom URL). The track is still drawn. Choose
+  another provider or *no map* in the HUD settings.
+- **The flight timer restarts**: it lives in the page, so refreshing the page or the OBS source resets it.
+
 ## Still stuck
 
 Run with a recording (`--log session.jsonl`), then `sticklink check-log session.jsonl`, and look at `/api/v1/status` (it

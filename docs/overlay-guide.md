@@ -64,6 +64,53 @@ modes 1 and 2 and can show the wrong axis names in modes 3 and 4.
 Changes save automatically. The sources are the radio's inputs (`Stick: Ail/Ele/Rud/Thr`, and the two default command
 channels) and its mixer outputs `CH1` to `CH16`. Defaults: sticks on their own inputs, ARM on radio channel 5, no Crash Flip.
 
+## Telemetry HUD
+
+`/hud` shows telemetry as badges in the same eight styles as `/fx`; `/hud/link`, `/hud/battery` and `/hud/gps` show one block each,
+so they can be separate OBS Browser Sources. The pages fill whatever source size you give them and keep their content centred.
+
+![HUD, neon](img/hud-corners-neon.png)
+![HUD, hacker](img/hud-corners-hacker.png)
+
+| Block | Shows | Needs these sensors (EdgeTX names) |
+|---|---|---|
+| **Link** | Quality dial and 30 s history, SNR, RSSI A/B, TX power, RF mode, antenna, uplink stats | `RQly RSNR 1RSS 2RSS TPWR RFMD ANT TRSS TQly TSNR` (ExpressLRS sends these) |
+| **Battery** | Pack voltage, volts per cell, cell bar, current, mAh used, remaining %, power in W, voltage history | `RxBt Curr Capa Bat%` (from the flight controller; needs its battery telemetry enabled) |
+| **GPS** | Map with live track, home marker, quad arrow, scale bar; distance and direction to home, speed, altitude, heading, climb, satellites | the radio script's GPS record, plus `Sats GSpd GAlt Alt Hdg VSpd` |
+| **Status** | ARMED badge, flight timer, throttle, Crash Flip badge, radio state | your ARM / Crash Flip assignment from `/setup` |
+
+Blocks without data say so ("NO LINK DATA", "WAITING FOR GPS...") instead of showing zeros. A sensor that stops updating turns grey with a dash.
+
+![Battery, arcade](img/hud-battery-arcade.png)
+
+**Warning colours.** Link quality: green from 80 %, amber from 60 %, red below. SNR: from 5 dB / 0 dB. RSSI: from -85 / -100 dBm. Battery
+volts **per cell**: green from 3.5 V, amber from 3.3 V, red below, so set **Battery cells** to your pack (4S, 6S, ...). Remaining %:
+from 30 % / 15 %. Satellites: from 8 / 5. Red values pulse.
+
+**Double-click** any HUD page for its settings (saved on the server like `/fx`): style (or follow the main one), layout, which blocks appear,
+battery cells, speed and altitude units, and the map. Layouts for the combined HUD: `corners` (one block in each corner, the middle stays free for
+video), `row` (along the bottom) and `column` (down the left edge). The block pages ignore the layout.
+
+**Flight timer.** It runs while your mapped ARM switch is on, restarts at each arming, and stays on screen after disarming. It lives in the browser
+page, so refreshing the page (or the OBS source) resets it.
+
+### The map
+
+![GPS, inferno](img/hud-gps-inferno.png)
+
+- **Provider**: OpenStreetMap standard tiles (default), CARTO dark or light, your own tile server (`custom URL`, with `{z}/{x}/{y}`, `https://` or `http://localhost`),
+  or *no map*, which draws only the track on a grid. If tiles cannot be loaded, the block switches to the track-only view by itself ("MAP OFFLINE").
+- **Zoom**: *auto* fits the whole track; a number is a fixed zoom, optionally following the quad. **Clear GPS track** forgets the track and home
+  (also done by restarting the radio script). Home is the radio's own position if it has one, otherwise the first fix.
+- **Credit**: the map always shows its provider's credit, as the providers require.
+- **Terms and privacy**: tiles come straight from the provider to your browser, which tells the provider your IP address and the area you are viewing.
+  Sticklink only requests tiles that are in view (no prefetching), a few at a time, and relies on your browser's HTTP cache, as the
+  [OpenStreetMap tile policy](https://operations.osmfoundation.org/policies/tiles/) asks; OSM may still block heavy use. CARTO's free tiles are for
+  non-commercial use only. For anything beyond light personal use, point the custom URL at your own tile service.
+- Positions are only drawn if the radio script sends them; see [radio setup](radio-setup.md#telemetry-sensors-and-gps).
+
+![Link, clean](img/hud-link-clean.png)
+
 ## Classic overlay
 
 `/overlay` - a plain panel with two sticks, ARM/flip lamps and telemetry; 560 x 390.

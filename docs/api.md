@@ -14,6 +14,8 @@ is at `/api/v1/openapi.json`. A test checks that every route is in that descript
 | | `GET /api/v1/controls` | Sticks normalised to -1..1, raw inputs, switch states |
 | | `GET /api/v1/telemetry`, `/telemetry/{sensor}` | All sensors, or one by name (`RQly`, `RxBt`, ...) |
 | | `GET /api/v1/channels`, `/channels/{n}` | Mixer outputs CH1-CH16, or one (1-16) |
+| | `GET /api/v1/gps` | Position, home, distance and bearing from home, fix state |
+| | `GET`, `DELETE /api/v1/gps/track` | The flown track (thinned to one point per 2 m, at most 5000); forget track and home |
 | Settings | `GET /api/v1/styles` | The overlay styles |
 | | `GET`, `PUT`, `PATCH`, `DELETE /api/v1/settings` | Read; replace everything; change some; reset to defaults |
 | | `GET`, `PUT /api/v1/settings/mapping` | Which inputs drive roll, pitch, yaw, throttle, ARM, Crash Flip |
@@ -30,6 +32,8 @@ is at `/api/v1/openapi.json`. A test checks that every route is in that descript
 ```bash
 curl localhost:8765/api/v1/controls
 curl localhost:8765/api/v1/channels/8
+curl localhost:8765/api/v1/gps
+curl -X PATCH localhost:8765/api/v1/settings -H 'content-type: application/json' -d '{"hud":{"layout":"row","cells":6,"map":{"provider":"none"}}}'
 curl -X PATCH localhost:8765/api/v1/settings -H 'content-type: application/json' -d '{"style":"hacker","mode":2}'
 curl -X POST   localhost:8765/api/v1/recording -H 'content-type: application/json' -d '{"label":"first-flight"}'
 curl -X DELETE localhost:8765/api/v1/recording
@@ -45,6 +49,8 @@ async def main():
             print(state["status"], state["controls"])
 asyncio.run(main())
 ```
+
+Settings include a `hud` object (style, layout, blocks, battery cells, units and the map provider); a partial `hud` or `mapping` in a PATCH only changes what it names.
 
 Values: `controls` are null unless the data is live (a reading within the last 500 ms); `channels` is null until the radio
 script reports them; `status` is `live`, `demo`, `paused` or `disconnected`.

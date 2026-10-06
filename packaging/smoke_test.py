@@ -14,9 +14,11 @@ import urllib.request
 
 PORT = 8899
 BASE = f'http://127.0.0.1:{PORT}'
-PAGES = ['/fx', '/setup', '/overlay', '/docs', '/assets/stickfx.js', '/assets/setup.js', '/assets/components.js',
+PAGES = ['/fx', '/setup', '/overlay', '/docs', '/hud', '/hud/link', '/hud/battery', '/hud/gps', '/hud/status',
+         '/assets/stickfx.js', '/assets/setup.js', '/assets/hud.js', '/assets/components.js',
          '/assets/fonts/bungee-latin-400-normal.woff2', '/assets/swagger/swagger-ui-bundle.js',
-         '/assets/swagger/swagger-ui.css', '/api/v1/openapi.json', '/api/v1/styles', '/api/v1/settings']
+         '/assets/swagger/swagger-ui.css']
+API = ['/api/v1/openapi.json', '/api/v1/styles', '/api/v1/settings', '/api/v1/gps', '/api/v1/gps/track', '/api/v1/telemetry', '/api/v1/channels']
 
 
 def get(path, method='GET', body=None):
@@ -62,10 +64,14 @@ def main(exe):
             for path in PAGES:
                 status, data = get(path)
                 assert status == 200 and len(data) > 100, (path, status, len(data))
+            for path in API:  # JSON, however small (a track is empty before the first fix)
+                status, data = get(path)
+                assert status == 200 and isinstance(json.loads(data), (dict, list)), (path, status, data[:80])
             time.sleep(1.5)
             state = json.loads(get('/api/v1/state')[1])
             assert state['status'] == 'demo' and state['controls'] is not None, state
             assert state['channels'] is not None and len(state['channels']) == 16, 'demo should report all 16 channels'
+            assert state['gps']['fix'] and state['gps']['home'] and len(state['telemetry']) >= 20, 'demo should report GPS and the full sensor set'
             status = json.loads(get('/api/v1/status')[1])
             assert status['radio']['connected'] and status['diagnostics']['samples'] > 0, status
             code, data = get('/api/v1/recording', 'POST', {'label': 'smoke'})
@@ -78,7 +84,7 @@ def main(exe):
             assert report['counts']['samples'] > 10, report['counts']
             code, data = get('/api/v1/settings', 'PATCH', {'style': 'hacker'})
             assert json.loads(data)['style'] == 'hacker'
-            print(f'server ok: {len(PAGES)} pages/assets, live demo state, recording ({report["counts"]["samples"]} samples), settings')
+            print(f'server ok: {len(PAGES)} pages/assets, {len(API)} API endpoints, live demo state, recording ({report["counts"]["samples"]} samples), settings')
         finally:
             stop(process)
     print('SMOKE TEST PASSED')

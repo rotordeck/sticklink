@@ -188,11 +188,20 @@ class SettingsTests(ApiCase):
         self.run_api(scenario)
 
     def test_python_defaults_match_the_typescript_defaults(self):
-        ts = (ROOT/'fx/src/config.ts').read_text()
-        m = re.search(r"DEFAULTS: FxConfig = \{ style: '(\w+)', chaos: (\d+), mode: (\d), delay: (\d+), invert: \[\], size: (\d+)", ts)
-        self.assertTrue(m, 'DEFAULTS line in config.ts changed shape')
-        self.assertEqual((m[1], int(m[2]), int(m[3]), int(m[4]), int(m[5])),
-                         (DEFAULTS['style'], DEFAULTS['chaos'], DEFAULTS['mode'], DEFAULTS['delay'], DEFAULTS['size']))
+        """Run the real TypeScript config module under Node and compare its DEFAULTS with the server's, key for key."""
+        import json
+        import shutil
+        import subprocess
+        node = shutil.which('node')
+        if not node:
+            self.skipTest('node is not installed')
+        version = subprocess.run([node, '--version'], capture_output=True, text=True).stdout.strip().lstrip('v').split('.')
+        if tuple(int(x) for x in version[:2]) < (22, 18):
+            self.skipTest('Node 22.18+ is needed to run TypeScript directly')
+        code = "import { DEFAULTS } from './fx/src/config.ts'; console.log(JSON.stringify(DEFAULTS));"
+        run = subprocess.run([node, '--input-type=module', '-e', code], cwd=ROOT, capture_output=True, text=True, timeout=60)
+        self.assertEqual(run.returncode, 0, run.stderr)
+        self.assertEqual(json.loads(run.stdout), json.loads(json.dumps(DEFAULTS)))
 
 
 class RecordingTests(ApiCase):

@@ -68,6 +68,8 @@ def analyze(path):
                 ranges[name] = (min(lo, value), max(hi, value))
         elif rec['type'] == 'E':
             n['events'] += 1
+        elif rec['type'] == 'G':
+            n['gps'] = n.get('gps', 0) + 1
         elif rec['type'] == 'D':
             notes.append(rec['message'])
         elif rec['type'] == 'C':
@@ -132,6 +134,8 @@ def format_report(r):
         g = r[key]
         lines.append(f"{label}: median {ms(g['median'])}, p95 {ms(g['p95'])}, "
                      f"p99 {ms(g['p99'])}, max {ms(g['max'])}")
+    if c.get('gps'):
+        lines.append(f"GPS records: {c['gps']}")
     lines.append('Channel ranges: ' + (', '.join(
         f'{k} {lo}..{hi}' for k, (lo, hi) in r['stick_range'].items()) or '—'))
     for name, s in sorted(r['telemetry'].items()):

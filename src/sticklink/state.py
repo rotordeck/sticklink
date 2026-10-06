@@ -2,6 +2,11 @@
 import time
 
 from .config import Config
+from .geo import bearing_deg, haversine_m
+
+MIN_TRACK_STEP_M = 2.0   # a new track point only after moving this far
+MAX_TRACK_POINTS = 5000
+FIX_MAX_AGE_S = 3.0
 
 
 class RadioState:
@@ -12,8 +17,15 @@ class RadioState:
         self.invalid = self.missing = self.resets = self.samples = 0
         self.logger = None
         self.notes = []  # radio-side diagnostics (D records), newest last
+        self.reset_gps()
         self.session = 0
         self.clear()
+
+    def reset_gps(self):
+        """Forget the GPS fix, home point and track (the radio script restarted, or the user cleared it)."""
+        self.gps = None  # dict(lat, lon, received)
+        self.home = None  # (lat, lon)
+        self.track = []  # [(lat, lon)], thinned by distance
 
     def clear(self):
         self.controls = None
@@ -40,6 +52,7 @@ class RadioState:
         restarted = self.last_tick is not None and tick < self.last_tick
         if restarted:
             self.clear()
+            self.reset_gps()
             self.session += 1
             self.resets += 1
         self.last_tick = tick
@@ -47,6 +60,7 @@ class RadioState:
             # An explicit hello marks a new script run, even at the same tick.
             if self.last_seq is not None:
                 self.clear()
+                self.reset_gps()
                 self.session += 1
                 self.resets += 1
                 self.last_tick = tick
@@ -60,6 +74,7 @@ class RadioState:
                 return
             if step >= 32768:  # restart without a received hello
                 self.clear()
+                self.reset_gps()
                 self.session += 1
                 self.resets += 1
                 self.last_tick = tick
@@ -72,6 +87,8 @@ class RadioState:
             self.crash = self.controls['crash'] > cfg.crash_threshold
             self.last_sample = now
             self.samples += 1
+        elif record['type'] == 'G':
+            self.ingest_gps(record, now)
         elif record['type'] == 'D':
             self.notes = (self.notes + [record['message']])[-8:]
         elif record['type'] == 'C':
@@ -84,6 +101,33 @@ class RadioState:
             self.telemetry[record['sensor']] = dict(
                 value=record['value'], current=record['current'],
                 fresh=record['fresh'], received=now)
+
+    def ingest_gps(self, record, now):
+        lat, lon = record['lat'], record['lon']
+        if abs(lat) < 1e-6 and abs(lon) < 1e-6:  # (0, 0) means "no fix"
+            return
+        self.gps = dict(lat=lat, lon=lon, received=now)
+        if self.home is None:
+            plat, plon = record['plat'], record['plon']
+            pilot = not (abs(plat) < 1e-6 and abs(plon) < 1e-6)
+            self.home = (plat, plon) if pilot else (lat, lon)
+        if not self.track or haversine_m(*self.track[-1], lat, lon) >= MIN_TRACK_STEP_M:
+            self.track.append((lat, lon))
+            if len(self.track) > MAX_TRACK_POINTS:
+                del self.track[0]
+
+    def gps_snapshot(self, now):
+        if self.gps is None:
+            return dict(fix=False, lat=None, lon=None, age_ms=None, home=None, distance_m=None, bearing_deg=None,
+                        track_points=len(self.track))
+        age = now - self.gps['received']
+        out = dict(fix=self.connected and age <= FIX_MAX_AGE_S, lat=self.gps['lat'], lon=self.gps['lon'],
+                   age_ms=round(age*1000), home=None, distance_m=None, bearing_deg=None, track_points=len(self.track))
+        if self.home is not None:
+            out['home'] = dict(lat=self.home[0], lon=self.home[1])
+            out['distance_m'] = round(haversine_m(*self.home, self.gps['lat'], self.gps['lon']), 1)
+            out['bearing_deg'] = round(bearing_deg(*self.home, self.gps['lat'], self.gps['lon']), 1)
+        return out
 
     def snapshot(self, now=None):
         cfg = self.config
@@ -111,7 +155,7 @@ class RadioState:
         return dict(schema=1, session=self.session, status=status,
             source=('sticks' if self.logger == 'DDRAW' else 'outputs'
                     if self.logger == 'DDOUT' else cfg.input_label),
-            notes=list(self.notes), controls=controls, raw=dict(self.controls) if live else None, channels=outputs,
+            notes=list(self.notes), gps=self.gps_snapshot(now), controls=controls, raw=dict(self.controls) if live else None, channels=outputs,
             commands=dict(arm=self.arm if live else None,
             crash=self.crash if live else None), telemetry=telemetry,
             tick=self.last_tick, seq=self.last_seq,

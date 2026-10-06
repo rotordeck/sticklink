@@ -18,6 +18,7 @@ LINES = ['H,1,DDRAW,0',
          'S,106,5,300,60,-60,-800,1024,1024',
          'T,108,6,RxBt,4.1,1,1',
          'C,108,6,1,'+','.join(['0']*8),
+         'G,108,6,51.0543,3.7174,0,0',
          'S,109,9,400,70,-70,-700,1024,1024']  # seq 7..8 lost
 
 
@@ -67,6 +68,8 @@ class LogTests(unittest.TestCase):
         self.assertTrue(any('missing' in w for w in r['warnings']))
         self.assertIn('Telemetry RQly', format_report(r))
         self.assertEqual(r['output_ranges'][1], (0, 0))
+        self.assertEqual(r['counts']['gps'], 1)
+        self.assertIn('GPS records: 1', format_report(r))
 
     def test_analyze_warns_without_telemetry_or_motion(self):
         pipe = Pipeline(Config(), JsonlLog(self.path))
