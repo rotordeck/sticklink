@@ -2,6 +2,10 @@
 
 `sticklink <command> [options]` (the downloaded binary, or `python -m sticklink`).
 
+## `sticklink gui` (or no command)
+
+A small window: radio picker (or Demo), **Start / Stop**, a status light (stopped, waiting for the radio, connected) and buttons that open the web pages. It serves on port 8765 and stops everything when closed. Needs tkinter (included in the downloads; on Linux with pip install `python3-tk`).
+
 ## `run` - serve the overlays
 
 Exactly one of `--port` or `--demo`.

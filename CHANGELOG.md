@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.1 (2026-10-06)
+
+- A small window (`sticklink gui`, also what you get when you start the program without arguments): pick the radio or Demo, Start / Stop, status light, buttons for the web pages.
+- Released on PyPI: `uvx sticklink run --demo`, `pip install sticklink`.
+- README links and images are absolute, so the PyPI page renders.
+
 ## 0.1.0 (2026-10-06)
 
 First packaged version.

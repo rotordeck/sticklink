@@ -2,6 +2,7 @@ import argparse
 from pathlib import Path
 import math
 import shutil
+import sys
 
 from aiohttp import web
 
@@ -54,12 +55,22 @@ def parser():
                         help='folder to copy into (default: here). Use <SD card>/SCRIPTS/FUNCTIONS for the radio')
 
     sub.add_parser('list-ports', help='list serial ports')
+    sub.add_parser('gui', help='a small window with Start / Stop, status and links (also what you get with no command)')
     return p
 
 
 def main(argv=None):
     p = parser()
+    argv = sys.argv[1:] if argv is None else argv
+    if not argv:
+        argv = ['gui']  # double-clicked program: open the window
     args = p.parse_args(argv)
+    if args.command == 'gui':
+        try:
+            from . import gui
+        except ImportError:  # Python without tkinter (some Linux distributions package it separately)
+            p.error('the window needs tkinter (Linux: install python3-tk). The other commands work without it.')
+        return gui.main()
     if args.command == 'list-ports':
         from serial.tools.list_ports import comports
         for port in comports():

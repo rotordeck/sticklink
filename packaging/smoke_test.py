@@ -44,6 +44,10 @@ def main(exe):
     with tempfile.TemporaryDirectory() as tmp:
         quick = subprocess.run([exe, '--help'], capture_output=True, text=True, timeout=120)
         assert quick.returncode == 0 and 'radio-script' in quick.stdout, quick.stdout + quick.stderr
+        if sys.platform != 'linux' or os.environ.get('DISPLAY'):  # Linux CI runs this under xvfb-run
+            gui = subprocess.run([exe, 'gui'], capture_output=True, text=True, timeout=60,
+                                 env={**os.environ, 'STICKLINK_GUI_SELFTEST': '1'})
+            assert gui.returncode == 0 and 'gui selftest ok' in gui.stdout, gui.stdout + gui.stderr
         script = subprocess.run([exe, 'radio-script', tmp], capture_output=True, text=True, timeout=60)
         assert script.returncode == 0, script.stderr
         lua = open(os.path.join(tmp, 'DDSTK.lua'), encoding='utf-8').read()
