@@ -4,7 +4,7 @@
   "type": "module",
   "description": "Canvas overlay (stickcam renderer, live). Build output is committed to ../src/sticklink/web/stickfx.js",
   "scripts": {
-    "build": "esbuild stickfx=src/index.ts setup=src/setup.ts hud=src/hud/index.ts --bundle --format=esm --target=es2022 --minify --outdir=../src/sticklink/web",
+    "build": "esbuild stickfx=src/index.ts setup=src/setup.ts hud=src/hud/index.ts modes=src/modes/modes-page.ts --bundle --format=esm --target=es2022 --minify --outdir=../src/sticklink/web",
     "typecheck": "tsc --noEmit -p .",
     "test": "node --test \"test/*.test.ts\""
   },

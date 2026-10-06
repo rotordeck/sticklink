@@ -7,6 +7,7 @@ from aiohttp.test_utils import TestClient, TestServer
 
 from sticklink.fxconfig import FxConfigStore, validate
 from sticklink.pipeline import Pipeline
+from sticklink.scenes import SceneStore
 from sticklink.server import OverlayServer
 from sticklink.sources.base import Source
 
@@ -61,7 +62,7 @@ class StoreAndApiTests(unittest.TestCase):
 
     def test_http_endpoints(self):
         async def go():
-            server = OverlayServer(Pipeline(), IdleSource(), fx_config=FxConfigStore(self.path))
+            server = OverlayServer(Pipeline(), IdleSource(), fx_config=FxConfigStore(self.path), scene_store=SceneStore(os.path.join(self.dir.name, 'scenes.json')))
             async with TestClient(TestServer(server.app())) as c:
                 self.assertEqual((await (await c.get('/api/fx-config')).json()), {})
                 r = await c.post('/api/fx-config', json=dict(style='hacker', chaos=2))

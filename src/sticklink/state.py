@@ -116,6 +116,14 @@ class RadioState:
             if len(self.track) > MAX_TRACK_POINTS:
                 del self.track[0]
 
+    def channels_now(self, now=None):
+        """The 16 raw channel values, or None unless both halves arrived recently (the same rule as the snapshot's `channels`)."""
+        now = time.monotonic() if now is None else now
+        limit = max(1000, self.config.stale_ms)
+        if self.connected and len(self.output_times) == 2 and all((now-t)*1000 <= limit for t in self.output_times.values()):
+            return list(self.outputs)
+        return None
+
     def gps_snapshot(self, now):
         if self.gps is None:
             return dict(fix=False, lat=None, lon=None, age_ms=None, home=None, distance_m=None, bearing_deg=None,

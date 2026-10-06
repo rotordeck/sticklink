@@ -21,6 +21,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 ROOT = Path(__file__).resolve().parent.parent
 CHECK = ROOT/'tests'/'browser'/'check.mjs'
 PERMALINK = ROOT/'tests'/'browser'/'permalink.mjs'
+MODES = ROOT/'tests'/'browser'/'modes.mjs'
 NODE = shutil.which('node')
 CHROME = os.environ.get('CHROME') or next((shutil.which(n) for n in ('google-chrome-stable', 'google-chrome', 'chromium', 'chromium-browser') if shutil.which(n)), None)
 ENABLED = os.environ.get('STICKLINK_BROWSER_TESTS') == '1' and NODE and CHROME
@@ -119,6 +120,7 @@ class HudBrowserTests(unittest.TestCase):
             self.assertEqual(len({r['plainLink0'], r['plainLink1'], r['plainLink2']}), 3, f'{page}: the link follows every change')
             self.assertTrue(r['hrefHasNoQuery'] and r['addressBarUnchanged'], f'{page}: the address bar is never touched')
             self.assertIn('saved on the server', r['plainNote'])
+            self.assertFalse(r['modeFieldInPanel'], f'{page}: the stick layout is chosen on /setup, not in this panel')
             self.assertTrue(r['setupLinkStillThere'], f'{page}: the panel keeps its setup link')
             # a plain page still saves (the last change is on the server)...
             self.assertEqual(r['savedOnServer'] if page == 'fx' else r['savedOnServer']['layout'], 'inferno' if page == 'fx' else 'column')
@@ -130,6 +132,15 @@ class HudBrowserTests(unittest.TestCase):
             self.assertTrue(r['pinnedAddressUnchanged'])
             self.assertIn('opened from a link', r['pinnedNote'])
             self.assertIn('Not saved on the server', r['pinnedStatus'])
+
+    def test_stick_layout_set_on_setup_reaches_the_overlay_and_its_link(self):
+        import base64
+        run = subprocess.run([NODE, str(PERMALINK), self.base], capture_output=True, text=True, timeout=180, env={**os.environ, 'CHROME': CHROME})
+        self.assertEqual(run.returncode, 0, run.stderr)
+        fx = json.loads(run.stdout.strip().splitlines()[-1])['fx']
+        decode = lambda link: json.loads(base64.urlsafe_b64decode((p := link.split('?cfg=v1.')[1]) + '=' * (-len(p) % 4)))
+        self.assertNotIn('mode', decode(fx['linkBeforeSetupChange']))
+        self.assertEqual(decode(fx['linkAfterSetupChange']).get('mode'), 3, 'the overlay followed the layout saved by /setup and its link now carries it')
 
     def test_every_hud_page_renders_without_errors(self):
         api(self.base, '/api/v1/settings', 'PATCH', dict(hud=dict(map=dict(provider='none'))))
@@ -173,6 +184,98 @@ class HudBrowserTests(unittest.TestCase):
             self.assertGreater(result['litFraction'], 0.05, 'the tile-free fallback still draws the track and readouts')
         finally:
             tiles.close()
+
+
+
+class FakeObsThread:
+    """tests/fake_obs.py running in a background thread, so a browser test can use it like a real OBS."""
+    def __init__(self, scenes):
+        try:
+            from fake_obs import FakeObs
+        except ImportError:
+            from tests.fake_obs import FakeObs
+        import asyncio
+        from aiohttp import web
+        self.fake, self.port, self.loop, self.ready = FakeObs(scenes=scenes, current=scenes[0]), free_port(), asyncio.new_event_loop(), threading.Event()
+        self.web = web
+        self.thread = threading.Thread(target=self._run, daemon=True)
+        self.thread.start()
+        self.ready.wait(10)
+
+    def _run(self):
+        import asyncio
+        asyncio.set_event_loop(self.loop)
+        self.runner = self.web.AppRunner(self.fake.app())
+        self.loop.run_until_complete(self.runner.setup())
+        self.loop.run_until_complete(self.web.TCPSite(self.runner, '127.0.0.1', self.port).start())
+        self.ready.set()
+        self.loop.run_forever()
+
+    def close(self):
+        self.loop.call_soon_threadsafe(self.loop.stop)
+
+
+@unittest.skipUnless(ENABLED, 'set STICKLINK_BROWSER_TESTS=1 (needs Chrome and Node 22+)')
+class ModesPageBrowserTests(unittest.TestCase):
+    SCENES = ['Intro', 'Drone', 'Dronecontroller', 'Room', 'Instant replay', 'Crash replays']
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp = tempfile.TemporaryDirectory()
+        cls.obs = FakeObsThread(cls.SCENES)
+        port = free_port()
+        cls.base = f'http://127.0.0.1:{port}'
+        cls.proc = subprocess.Popen([sys.executable, '-m', 'sticklink', 'run', '--demo', '--http-port', str(port),
+                                     '--fx-config', str(Path(cls.tmp.name)/'fx.json'), '--scenes-config', str(Path(cls.tmp.name)/'scenes.json'),
+                                     '--recordings-dir', str(Path(cls.tmp.name)/'rec')], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        for _ in range(100):
+            try:
+                api(cls.base, '/api/v1/status')
+                break
+            except (urllib.error.URLError, ConnectionError):
+                time.sleep(0.2)
+        api(cls.base, '/api/v1/obs/connection', 'PATCH', dict(enabled=True, host='127.0.0.1', port=cls.obs.port))
+        for _ in range(100):
+            if api(cls.base, '/api/v1/obs')['status'] == 'connected':
+                break
+            time.sleep(0.1)
+        time.sleep(1.5)
+
+    @classmethod
+    def tearDownClass(cls):
+        api(cls.base, '/api/v1/obs/connection', 'PATCH', dict(enabled=False))
+        time.sleep(0.5)
+        cls.proc.terminate()
+        try:
+            cls.proc.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            cls.proc.kill()
+        cls.obs.close()
+        cls.tmp.cleanup()
+
+    def test_the_modes_page_works_like_a_user_would_use_it(self):
+        run = subprocess.run([NODE, str(MODES), self.base], capture_output=True, text=True, timeout=180, env={**os.environ, 'CHROME': CHROME})
+        self.assertEqual(run.returncode, 0, run.stderr)
+        r = json.loads(run.stdout.strip().splitlines()[-1])
+        self.assertEqual(r['errors'], [])
+        self.assertEqual(r['cardsAtStart'], 6, 'a first-time user sees every OBS scene as a mode')
+        self.assertFalse(r['hideUnusedAtStart'])
+        self.assertIn('connected', r['obsText'])
+        self.assertEqual(r['afterAdd']['modes'], [dict(scene='Drone', ranges=[dict(channel='ch:5', min=1700, max=2100)])])
+        drag = r['afterDrag']
+        self.assertTrue(1275 <= drag['min'] <= 1325 and drag['max'] == 2100 and drag['min'] % 25 == 0, f'dragging the min handle to about 1300: {drag}')
+        self.assertEqual(r['afterKeys']['min'], drag['min'] + 125, 'ArrowRight is +25 and PageUp is +100')
+        self.assertEqual((r['afterOvershoot']['min'], r['afterOvershoot']['max']), (2100, 2100), 'a handle stops at the other one')
+        self.assertTrue(r['markerVisible'], 'the live position of the switch is drawn')
+        self.assertEqual(r['orderAfterAdds'], ['Drone', 'Room', 'Instant replay'], 'a newly used scene starts at the lowest priority')
+        self.assertEqual(r['orderAfterUpButton'], ['Drone', 'Instant replay', 'Room'])
+        self.assertEqual(r['orderAfterDrag'], ['Room', 'Drone', 'Instant replay'], 'dragging a mode to the top gives it the highest priority')
+        self.assertEqual(r['priorityLabels'], ['#1', '#2', '#3'])
+        self.assertIn('Drone', r['status'])
+        self.assertIn(('SetCurrentProgramScene', dict(sceneName='Drone')), self.obs.fake.requests, '"Show in OBS" reached OBS')
+        self.assertTrue(r['enabledOn'] and not r['enabledOff'], 'the master switch is saved')
+        self.assertEqual(r['orderAfterRemove'], ['Room', 'Drone'], 'removing the last range un-uses the scene')
+        self.assertEqual(r['finalCards'], 6)
 
 
 if __name__ == '__main__':

@@ -95,10 +95,26 @@ jobs:
       - name: Checksums
         working-directory: release
         run: sha256sum * > SHA256SUMS.txt && cat SHA256SUMS.txt
+      - name: Release notes from the changelog
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          awk -v v="$version" '$0 ~ "^## " v " " {on=1; next} /^## / {on=0} on' CHANGELOG.md > notes.md
+          if [ ! -s notes.md ]; then echo "Sticklink $version" > notes.md; fi
+          cat >> notes.md <<'EOF'
+
+          ## Downloads
+          - `sticklink-<version>-<system>.(tar.gz|zip)`: one self-contained program (Python included), the radio script `DDSTK.lua`, README and docs.
+          - `sticklink-<version>-py3-none-any.whl` and the source package: the Python version (`pip install`).
+          - `SHA256SUMS.txt`: checksums of everything above.
+
+          The programs are not code-signed: on macOS clear the quarantine flag (`xattr -d com.apple.quarantine ./sticklink`), on Windows choose *More info, Run anyway*.
+          See `docs/getting-started.md` inside the archive.
+          EOF
+          cat notes.md
       - name: Create the release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           flags=""
           case "$GITHUB_REF_NAME" in *-*) flags="--prerelease" ;; esac
-          gh release create "$GITHUB_REF_NAME" release/* --title "Sticklink ${GITHUB_REF_NAME#v}" --generate-notes $flags
+          gh release create "$GITHUB_REF_NAME" release/* --title "Sticklink ${GITHUB_REF_NAME#v}" --notes-file notes.md $flags

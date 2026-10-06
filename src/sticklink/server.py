@@ -8,16 +8,22 @@ from aiohttp import web
 
 from . import api
 from .fxconfig import FxConfigStore
+from .obs import ObsClient
 from .recorder import Recorder
+from .scenes import SceneEngine, SceneStore
 
 WEB = Path(__file__).resolve().parent/'web'
 
 
 class OverlayServer:
-    def __init__(self, pipeline, source, hz=30, fx_config=None, recorder=None):
+    def __init__(self, pipeline, source, hz=30, fx_config=None, recorder=None, scene_store=None):
         self.pipeline, self.source, self.hz = pipeline, source, hz
         self.fx_config = fx_config or FxConfigStore()
         self.recorder = recorder or Recorder(pipeline, source=source.label)
+        self.scene_store = scene_store or SceneStore()
+        self.obs = ObsClient()
+        self.scenes = SceneEngine(self.scene_store, self.obs, pipeline.state.channels_now)
+        self.obs.configure(self.scene_store.load()['obs'])
         self.clients = set()
 
     async def publisher(self):
@@ -48,7 +54,9 @@ class OverlayServer:
 
     async def lifecycle(self, app):
         tasks = [asyncio.create_task(self.source.run(self.pipeline)),
-                 asyncio.create_task(self.publisher())]
+                 asyncio.create_task(self.publisher()),
+                 asyncio.create_task(self.obs.run()),
+                 asyncio.create_task(self.scenes.run())]
         try:
             yield
         finally:
@@ -78,12 +86,16 @@ class OverlayServer:
         async def hud(request):
             return web.FileResponse(WEB/'hud.html')
 
+        async def modes_page(request):
+            return web.FileResponse(WEB/'modes.html')
+
         async def docs(request):
             return web.FileResponse(WEB/'docs.html')
         api.register(app, self)
         app.router.add_get('/fx', fx)
         app.router.add_get('/setup', setup)
         app.router.add_get('/docs', docs)
+        app.router.add_get('/modes', modes_page)
         for page in ('/hud', '/hud/link', '/hud/battery', '/hud/gps', '/hud/status'):
             app.router.add_get(page, hud)
         app.router.add_get('/', overlay)

@@ -14,11 +14,12 @@ import urllib.request
 
 PORT = 8899
 BASE = f'http://127.0.0.1:{PORT}'
-PAGES = ['/fx', '/setup', '/overlay', '/docs', '/hud', '/hud/link', '/hud/battery', '/hud/gps', '/hud/status',
-         '/assets/stickfx.js', '/assets/setup.js', '/assets/hud.js', '/assets/components.js',
+PAGES = ['/fx', '/setup', '/overlay', '/docs', '/hud', '/hud/link', '/hud/battery', '/hud/gps', '/hud/status', '/modes',
+         '/assets/stickfx.js', '/assets/setup.js', '/assets/hud.js', '/assets/modes.js', '/assets/components.js',
          '/assets/fonts/bungee-latin-400-normal.woff2', '/assets/swagger/swagger-ui-bundle.js',
          '/assets/swagger/swagger-ui.css']
-API = ['/api/v1/openapi.json', '/api/v1/styles', '/api/v1/settings', '/api/v1/gps', '/api/v1/gps/track', '/api/v1/telemetry', '/api/v1/channels']
+API = ['/api/v1/openapi.json', '/api/v1/styles', '/api/v1/settings', '/api/v1/gps', '/api/v1/gps/track', '/api/v1/telemetry', '/api/v1/channels',
+       '/api/v1/obs', '/api/v1/scene-modes', '/api/v1/scene-modes/state']
 
 
 def get(path, method='GET', body=None):
@@ -49,7 +50,7 @@ def main(exe):
         assert 'return { init=init, run=run' in lua
         print('help and radio-script ok')
 
-        process = subprocess.Popen([exe, 'run', '--demo', '--http-port', str(PORT), '--fx-config', os.path.join(tmp, 'fx.json'),
+        process = subprocess.Popen([exe, 'run', '--demo', '--http-port', str(PORT), '--fx-config', os.path.join(tmp, 'fx.json'), '--scenes-config', os.path.join(tmp, 'scenes.json'),
                                     '--recordings-dir', os.path.join(tmp, 'rec')], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         try:
             deadline = time.time() + 90  # a one-file program unpacks itself first

@@ -19,6 +19,7 @@ Exactly one of `--port` or `--demo`.
 | `--log FILE` | | Start a recording to this file straight away (a path you choose) |
 | `--recordings-dir DIR` | `~/.local/share/sticklink/recordings` | Folder for recordings started through the API |
 | `--fx-config FILE` | `~/.config/sticklink/fx.json` | Overlay settings file |
+| `--scenes-config FILE` | `~/.config/sticklink/scenes.json` | OBS connection (including its password) and the scene modes; readable only by you |
 
 If the radio is unplugged, Sticklink keeps running and reconnects to the same port every two seconds.
 

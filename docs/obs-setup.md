@@ -51,6 +51,10 @@ Turning browser hardware acceleration off fixed it: **Settings, Advanced, "Enabl
 off, or, with OBS closed, set `BrowserHWAccel=false` in `~/.config/obs-studio/global.ini`. Starting OBS through XWayland
 (`QT_QPA_PLATFORM=xcb obs`) is another thing to try. This costs some CPU for every browser source.
 
+## Switching scenes with your radio
+
+Sticklink can also change OBS's scene from your radio's switches over OBS's WebSocket server (Tools, WebSocket Server Settings). See [scene switching](scenes.md).
+
 ## Without the browser source
 
 You can capture a normal browser window showing `/fx` with a window or screen capture. Capture cannot keep transparency,

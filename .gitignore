@@ -11,3 +11,9 @@ stage/
 .DS_Store
 /Screenshot*.png
 /DroneDeck_OBS_StickOverlay/
+
+# reference screenshots kept next to the project are not ours to redistribute
+/*.jpg
+/*.jpeg
+/*.webp
+/*.png

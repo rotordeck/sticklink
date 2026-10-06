@@ -23,6 +23,8 @@ is at `/api/v1/openapi.json`. A test checks that every route is in that descript
 | | `GET /api/v1/recordings` | Recordings in the folder, newest first |
 | | `GET`, `DELETE /api/v1/recordings/{name}` | Download the raw JSONL; delete |
 | | `GET /api/v1/recordings/{name}/report` | Quality report, like `check-log` |
+| OBS scenes | `GET /api/v1/obs`, `PATCH /api/v1/obs/connection`, `POST /api/v1/obs/scene` | Connection to OBS, its scenes; change the connection; switch a scene now |
+| | `GET`, `PUT /api/v1/scene-modes`, `GET /api/v1/scene-modes/state`, `POST /api/v1/scene-modes/apply` | The ranges per scene; live state; sync OBS to the switches now (see [scene switching](scenes.md)) |
 | Stream | WebSocket `/ws` | The state object as JSON text, about 30 times a second (receive-only) |
 
 `/api/state` and `/api/fx-config` from earlier versions still work and are marked deprecated.
@@ -66,8 +68,8 @@ There is no authentication, because the server only listens on `127.0.0.1`. Beca
 try to reach a local server, it also:
 
 - rejects any request whose `Host` header is not `localhost`, `127.0.0.1` or `[::1]` (blocks DNS rebinding);
-- requires `Content-Type: application/json` for everything that changes something (a cross-site form cannot send that
-  without a pre-flight request that the server does not answer);
+- requires `Content-Type: application/json` for everything that changes something, **including POSTs with an empty body** (a cross-site form
+  cannot send that without a pre-flight request that the server does not answer, so a web page cannot start a recording or switch your OBS scene);
 - creates recordings only in its recordings folder, with names it generates (`YYYYMMDD-HHMMSS[-label].jsonl`); clients can
   not choose paths, and file names in URLs are matched against a strict pattern;
 - limits request bodies to 64 KB.

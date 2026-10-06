@@ -27,7 +27,7 @@ Open `http://127.0.0.1:8765/api/v1/status`: `samples` stays 0 and the overlay sa
 ## Sticks or switches are wrong
 
 Use `/setup`: press **Learn** for the control and move it. A stick that moves the wrong way: tick *reverse*. Gimbals on the
-wrong sides: change the *stick layout*. ARM or Crash Flip not reacting: assign the switch with Learn; the classic
+wrong sides: change the *stick layout* on `/setup`. ARM or Crash Flip not reacting: assign the switch with Learn; the classic
 `/overlay` lamps still show the radio's default channels 5 and 8.
 
 ## The overlay shows BRIDGE OFFLINE
@@ -67,6 +67,17 @@ never changes usually means the flight controller is not sending battery telemet
 - **The map is grey or says MAP OFFLINE**: tiles could not be loaded (no internet, blocked, or a wrong custom URL). The track is still drawn. Choose
   another provider or *no map* in the HUD settings.
 - **The flight timer restarts**: it lives in the page, so refreshing the page or the OBS source resets it.
+
+## Scene switching does nothing
+
+Open `/modes` and read the line under *Switch scenes from the radio*: it says why the engine is waiting.
+
+- **Waiting for OBS**: OBS's WebSocket server must be on (Tools, WebSocket Server Settings) with the same port and password as in *Connection...*. "wrong or missing
+  password" means exactly that; "cannot reach OBS" means OBS is not running or the port is wrong.
+- **No live radio data**: the radio script must be streaming and have reported its channels ([radio setup](radio-setup.md)); the orange markers should move.
+- **The scene switching is turned off**: tick *Switch scenes from the radio* (it is off by default).
+- **A switch is already in a mode's range when you turn it on**: that is intentional, Sticklink adopts the current positions; move the switch, or press *Apply now*.
+- **A scene is flagged "not in OBS"**: it was renamed or deleted in OBS; remove its ranges or re-add the scene with the same name.
 
 ## Still stuck
 

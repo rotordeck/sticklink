@@ -19,6 +19,7 @@ from sticklink.fxconfig import DEFAULTS, STYLE_INFO, STYLES, FxConfigStore
 from sticklink.openapi import build
 from sticklink.pipeline import Pipeline
 from sticklink.recorder import Recorder
+from sticklink.scenes import SceneStore
 from sticklink.server import OverlayServer
 from sticklink.sources.base import Source
 
@@ -62,7 +63,7 @@ class ApiCase(unittest.TestCase):
             with tempfile.TemporaryDirectory() as tmp:
                 pipe = Pipeline(Config())
                 server = OverlayServer(pipe, IdleSource(), fx_config=FxConfigStore(Path(tmp)/'fx.json'),
-                                       recorder=Recorder(pipe, Path(tmp)/'rec', source='test'))
+                                       recorder=Recorder(pipe, Path(tmp)/'rec', source='test'), scene_store=SceneStore(Path(tmp)/'scenes.json'))
                 if feed:
                     pipe.connection(True)
                     pipe.accept('H,1,DDRAW,0')
@@ -251,7 +252,9 @@ class RecordingTests(ApiCase):
 
     def test_post_without_body_starts_a_recording(self):
         async def scenario(client, server, tmp):
-            r = await self.call(client, 'POST', '/api/v1/recording', status=201)
+            err = await self.call(client, 'POST', '/api/v1/recording', status=415)  # no JSON content type: a cross-site form could send this
+            self.assertEqual(err['error']['code'], 'unsupported_media_type')
+            r = await self.call(client, 'POST', '/api/v1/recording', status=201, headers={'content-type': 'application/json'})
             self.assertRegex(r['name'], r'^\d{8}-\d{6}\.jsonl$')
             await self.call(client, 'DELETE', '/api/v1/recording')
         self.run_api(scenario)

@@ -32,6 +32,7 @@ async function page(url) {
     get: (name) => ev(`(()=>{const e=${root}.querySelector('[name="${name}"]'); return e.type==='checkbox'?e.checked:e.value})()`),
     set: (name, value, evt = 'change') => ev(`(()=>{const e=${root}.querySelector('[name="${name}"]'); if(e.type==='checkbox'){e.checked=${JSON.stringify(value)}}else{e.value=${JSON.stringify(value)}}; e.dispatchEvent(new Event('${evt}',{bubbles:true}))})()`),
     status: () => ev(`${root}.querySelector('.status').textContent`),
+    hasField: (name) => ev(`!!${root}.querySelector('[name="${name}"]')`),
     setupLinkStillThere: () => ev(`!!${root}.querySelector('a[href="/setup"]')`),
   };
 }
@@ -53,6 +54,13 @@ try {
     r.hrefHasNoQuery = !href0.includes('?');
     r.savedOnServer = (await settings())[scope === 'fx' ? field : 'hud'];
     r.setupLinkStillThere = name === 'fx' ? await p1.setupLinkStillThere() : true;
+    r.modeFieldInPanel = await p1.hasField('mode');
+    if (name === 'fx') { // the stick layout now lives on /setup: a change made there (saved on the server) must reach this page and its link
+      const before = await p1.link();
+      await fetch(base + '/api/v1/settings', { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ mode: 3 }) });
+      await sleep(4500);
+      r.linkBeforeSetupChange = before; r.linkAfterSetupChange = await p1.link();
+    }
     p1.close();
     // 2. a link page: reproduces its link, ignores what is saved, and writes nothing to the server
     const serverBefore = JSON.stringify(await settings());

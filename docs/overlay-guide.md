@@ -14,7 +14,6 @@ The stickcam look, live: gimbal frames, glowing trails, sparks, shockwaves, a th
 |---|---|
 | Style | Clean, Minimal, Neon, Arcade, Synthwave, Inferno, Unicorns & Rainbows, 80s Cyberpunk Hacker |
 | Effects | Strength of the effects, 0 to 2 (sparks, shocks, shake) |
-| Stick layout | Mode 1 to 4: which stick carries which axes (see below) |
 | Video delay (ms) | Extra delay for the overlay, to line it up with a delayed video source |
 | Size (px) | How big the gimbals are drawn (a reference size, default 1080); the panel shows the recommended Browser Source size for it |
 
@@ -36,6 +35,8 @@ new reading arrives, the frames since the previous one are redrawn as a smooth c
 the recent motion. The newest reading is always shown exactly, so nothing is delayed.
 
 ### Stick layouts
+
+Chosen on the [`/setup`](#setup---the-receiver-screen) page (not in this panel), together with the stick and switch assignment.
 
 | Mode | Left stick | Right stick |
 |---|---|---|

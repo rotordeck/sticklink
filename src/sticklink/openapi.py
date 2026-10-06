@@ -53,6 +53,38 @@ SCHEMAS = {
     'GpsTrack': obj(dict(home=nullable(ref('LatLon')),
                          points=dict(type='array', items=dict(type='array', items=dict(type='number'), minItems=2, maxItems=2),
                                      description='[lat, lon] pairs, thinned to one per 2 m, at most 5000'))),
+    'ObsStatus': obj(dict(
+        status=dict(type='string', enum=['disabled', 'connecting', 'connected', 'unreachable', 'auth_failed', 'error']),
+        error=dict(type='string'), enabled=dict(type='boolean'), host=dict(type='string'), port=dict(type='integer'),
+        passwordSet=dict(type='boolean', description='Whether a password is stored. The password itself is never returned.'),
+        version=nullable(dict(type='object', description='OBS and obs-websocket versions, as OBS reports them')),
+        currentScene=nullable(dict(type='string')), scenes=dict(type='array', items=dict(type='string'), description='In the order of OBS\'s scene panel')),
+        description='The connection to OBS Studio\'s WebSocket server (built in since OBS 28)'),
+    'ObsConnectionPatch': obj(dict(enabled=dict(type='boolean'), host=dict(type='string', pattern='^[A-Za-z0-9._:-]{1,253}$'),
+                                   port=dict(type='integer', minimum=1, maximum=65535),
+                                   password=dict(type='string', maxLength=256, description='Omit to keep the stored password; send "" to remove it')), required=False),
+    'SceneRange': obj(dict(channel=dict(type='string', pattern='^ch:([1-9]|1[0-6])$', description='`ch:5` is AUX 1 in Betaflight, `ch:6` AUX 2, ...'),
+                           min=dict(type='integer', minimum=900, maximum=2100, description='Microseconds: 1500 is the centre, 1000 and 2000 the ends of EdgeTX channel travel'),
+                           max=dict(type='integer', minimum=900, maximum=2100))),
+    'SceneMode': obj(dict(scene=dict(type='string', minLength=1, maxLength=255), ranges=dict(type='array', items=ref('SceneRange'), maxItems=8)),
+                     description='A scene is active while any of its channels is inside any of its ranges'),
+    'SceneModes': obj(dict(
+        enabled=dict(type='boolean', description='Master switch. Off by default: switching scenes changes the live output.'),
+        debounceMs=dict(type='integer', minimum=0, maximum=2000, default=150, description='A candidate scene must stay requested this long (a 3-position switch passes through its middle)'),
+        whenNone=obj(dict(action=dict(type='string', enum=['stay', 'previous', 'scene'], description='When no mode is active: keep the current scene, return to the scene from before, or go to a fixed scene'),
+                          scene=nullable(dict(type='string', minLength=1, maxLength=255)))),
+        modes=dict(type='array', items=ref('SceneMode'), maxItems=64, description='The order is the priority: the first active mode wins')),
+        description='Betaflight-style modes for OBS scenes'),
+    'SceneModesState': obj(dict(
+        enabled=dict(type='boolean'), blocked=nullable(dict(type='string', enum=['disabled', 'obs_not_connected', 'no_radio_data'], description='Why nothing is being switched right now')),
+        active=dict(type='array', items=dict(type='string'), description='Scenes whose ranges are active now'), desired=nullable(dict(type='string')),
+        committed=nullable(dict(type='string', description='The scene the engine has settled on (after the debounce)')),
+        channels=dict(type='object', additionalProperties=dict(type='integer'), description='Live value of the AUX channels (CH5 and up) in microseconds, to draw the markers'),
+        recent=dict(type='array', items=obj(dict(t=dict(type='number'), scene=nullable(dict(type='string')), previous=nullable(dict(type='string')),
+                                                 reason=dict(type='string', enum=['radio', 'apply', 'error']), ok=nullable(dict(type='boolean')), error=nullable(dict(type='string'))))),
+        currentScene=nullable(dict(type='string')), obs=dict(type='string'))),
+    'SceneRequest': obj(dict(scene=dict(type='string', minLength=1))),
+    'SceneResult': obj(dict(scene=dict(type='string'))),
     'State': obj(dict(
         schema=dict(type='integer', example=1), session=dict(type='integer', description='Increments on every radio restart/reconnect'),
         status=dict(type='string', enum=['live', 'demo', 'paused', 'disconnected']),
@@ -184,7 +216,8 @@ def build():
         },
         'servers': [{'url': '/'}],
         'tags': [{'name': 'Live', 'description': 'Radio data, now'}, {'name': 'Settings', 'description': 'Overlay settings and stick mapping'},
-                 {'name': 'Recording', 'description': 'Session logs'}, {'name': 'Legacy', 'description': 'Kept for the bundled pages'}],
+                 {'name': 'Recording', 'description': 'Session logs'},
+                 {'name': 'OBS scenes', 'description': 'Switch OBS scenes from radio switches'}, {'name': 'Legacy', 'description': 'Kept for the bundled pages'}],
         'paths': {
             '/api/v1/status': {'get': {
                 'tags': ['Live'], 'operationId': 'getStatus', 'summary': 'Service and radio status',
@@ -223,6 +256,31 @@ def build():
                 'delete': {'tags': ['Live'], 'operationId': 'clearGpsTrack', 'summary': 'Forget the track and home point',
                            'description': 'The next position becomes the new home. Also happens automatically when the radio script restarts.',
                            'responses': {'200': _ok(ref('GpsTrack'), 'The (now empty) track')}}},
+            '/api/v1/obs': {'get': {
+                'tags': ['OBS scenes'], 'operationId': 'getObs', 'summary': 'Connection to OBS, its scenes and the current scene',
+                'responses': {'200': _ok(ref('ObsStatus'))}}},
+            '/api/v1/obs/connection': {'patch': {
+                'tags': ['OBS scenes'], 'operationId': 'updateObsConnection', 'summary': 'Change the OBS connection settings',
+                'description': 'Saved in a private file (it holds the password) and applied immediately: Sticklink reconnects. Enable it only when you want Sticklink to talk to OBS.',
+                'requestBody': _json_body(ref('ObsConnectionPatch')), 'responses': {'200': _ok(ref('ObsStatus')), '400': E400, '415': E415}}},
+            '/api/v1/obs/scene': {'post': {
+                'tags': ['OBS scenes'], 'operationId': 'switchScene', 'summary': 'Switch OBS to a scene now (manual test)',
+                'description': 'Changes the live program scene.', 'requestBody': _json_body(ref('SceneRequest')),
+                'responses': {'200': _ok(ref('SceneResult')), '400': E400, '409': E409, '415': E415}}},
+            '/api/v1/scene-modes': {
+                'get': {'tags': ['OBS scenes'], 'operationId': 'getSceneModes', 'summary': 'Which channel ranges select which scene',
+                        'responses': {'200': _ok(ref('SceneModes'))}},
+                'put': {'tags': ['OBS scenes'], 'operationId': 'replaceSceneModes', 'summary': 'Replace the scene modes',
+                        'requestBody': _json_body(ref('SceneModes')), 'responses': {'200': _ok(ref('SceneModes')), '400': E400, '415': E415}}},
+            '/api/v1/scene-modes/state': {'get': {
+                'tags': ['OBS scenes'], 'operationId': 'getSceneModesState', 'summary': 'Live state of the scene engine',
+                'description': 'Which modes are active, the live AUX values, the recent switches and why nothing is being switched (if so).',
+                'responses': {'200': _ok(ref('SceneModesState'))}}},
+            '/api/v1/scene-modes/apply': {'post': {
+                'tags': ['OBS scenes'], 'operationId': 'applySceneModes', 'summary': 'Switch to what the radio asks for right now',
+                'description': 'A manual sync. The engine never switches by itself when it is enabled or reconnects; this does. Send `{}` as the body.',
+                'requestBody': _json_body(dict(type='object', additionalProperties=False), required=False),
+                'responses': {'200': _ok(ref('SceneResult')), '409': E409, '415': E415}}},
             '/api/v1/styles': {'get': {
                 'tags': ['Settings'], 'operationId': 'listStyles', 'summary': 'Available overlay styles',
                 'responses': {'200': _ok(dict(type='array', items=ref('Style')))}}},

@@ -185,10 +185,9 @@ export class StickFx extends HTMLElement {
       <label>Style <select name="style">${PRESETS.map((p) => `<option value="${p.id}">${p.name}</option>`).join('')}</select></label>
       <div class="blurb"></div>
       <label>Effects <input type="range" name="chaos" min="0" max="2" step="0.05"><span class="chaosv"></span></label>
-      <label>Stick layout <select name="mode"><option value="2">Mode 2 (L: yaw/thr)</option><option value="1">Mode 1 (L: yaw/pitch)</option><option value="3">Mode 3 (R: yaw/thr)</option><option value="4">Mode 4 (R: yaw/pitch)</option></select></label>
       <label>Video delay (ms) <input type="number" name="delay" min="0" max="5000" step="10"></label>
       <label>Size (px) <input type="number" name="size" min="240" max="2160" step="10"></label>
-      <div class="hint"><a href="/setup" target="_blank">Set up sticks, ARM and crash flip…</a></div>
+      <div class="hint"><a href="/setup" target="_blank">Stick layout, sticks, ARM and crash flip: open /setup…</a></div>
       <div class="hint info"></div>${LINK_HTML}
       <button type="button" class="close">Close</button> <span class="status"></span>`;
     this.linkRow = new LinkRow(this.panel);
@@ -201,7 +200,7 @@ export class StickFx extends HTMLElement {
 
   private syncPanel() {
     const c = this.cfg, set = (n: string, v: string | number) => { const el = this.field(n); if (document.activeElement !== el && el.value !== String(v)) el.value = String(v); };
-    (['style', 'chaos', 'mode', 'delay', 'size'] as const).forEach((k) => set(k, c[k]));
+    (['style', 'chaos', 'delay', 'size'] as const).forEach((k) => set(k, c[k]));
     this.panel.querySelector('.blurb')!.textContent = presetById(c.style).blurb;
     this.panel.querySelector('.chaosv')!.textContent = c.chaos.toFixed(2);
     this.updateLink();
@@ -211,7 +210,7 @@ export class StickFx extends HTMLElement {
 
   private readPanel() {
     const raw: Record<string, unknown> = {
-      style: this.field('style').value, chaos: this.field('chaos').value, mode: this.field('mode').value,
+      style: this.field('style').value, chaos: this.field('chaos').value,
       delay: this.field('delay').value, size: this.field('size').value,
     };
     this.editedAt = performance.now();

@@ -9,7 +9,9 @@ from . import __version__
 from .analysis import analyze
 from .fxconfig import STYLE_INFO, validate
 from .openapi import build
+from .obs import ObsError
 from .recorder import RecorderError
+from .scenes import validate_modes, validate_obs
 
 SENSOR = re.compile(r'[A-Za-z0-9_%-]{1,24}')
 LOCAL_HOSTS = {'localhost', '127.0.0.1', '[::1]'}
@@ -37,10 +39,12 @@ async def guard(request, handler):
 
 
 async def json_body(request, allow_empty=False):
+    # Always demand the JSON content type, even for an empty body: a cross-site HTML form cannot send it without a
+    # CORS pre-flight that this server never answers, so a web page you visit cannot trigger POST actions.
     if request.content_type != 'application/json':
-        if allow_empty and not request.can_read_body:
-            return {}
         raise web.HTTPUnsupportedMediaType(text='send Content-Type: application/json')
+    if allow_empty and not request.can_read_body:
+        return {}
     try:
         data = await request.json()
     except ValueError:
@@ -97,6 +101,59 @@ def register(app, server):
     async def gps_track_clear(request):
         pipe.state.reset_gps()
         return ok(track_body())
+
+    # ------------------------------------------------------------ OBS scenes
+    obs, engine, scene_store = server.obs, server.scenes, server.scene_store
+
+    async def obs_status(request):
+        return ok(obs.snapshot())
+
+    async def obs_connection(request):
+        data = await json_body(request)
+        try:
+            settings = scene_store.save_obs(data)
+        except ValueError as exc:
+            return error(400, 'invalid_obs_settings', str(exc))
+        obs.configure(settings)
+        return ok(obs.snapshot())
+
+    async def obs_scene(request):
+        data = await json_body(request)
+        scene = data.get('scene')
+        if not isinstance(scene, str) or not scene or set(data) != {'scene'}:
+            return error(400, 'invalid_scene', 'send {"scene": "<name>"}')
+        try:
+            await obs.set_scene(scene)
+        except ObsError as exc:
+            if obs.status != 'connected':
+                return error(409, 'obs_not_connected', str(exc))
+            return error(400, 'scene_not_found' if exc.code == 600 else 'obs_error', str(exc))
+        return ok(dict(scene=scene))
+
+    async def modes(request):
+        return ok(engine.config)
+
+    async def modes_put(request):
+        data = await json_body(request)
+        try:
+            cfg = scene_store.save_modes(validate_modes(data))
+        except ValueError as exc:
+            return error(400, 'invalid_scene_modes', str(exc))
+        engine.configure(cfg)
+        return ok(cfg)
+
+    async def modes_state(request):
+        return ok(dict(engine.status(), obs=obs.status))
+
+    async def modes_apply(request):
+        await json_body(request, allow_empty=True)
+        if engine.blocked == 'obs_not_connected' or obs.status != 'connected':
+            return error(409, 'obs_not_connected', 'OBS is not connected')
+        try:
+            scene = engine.apply_now()
+        except ValueError as exc:
+            return error(409, 'nothing_to_apply', str(exc))
+        return ok(dict(scene=scene))
 
     async def channels(request):
         return ok(dict(channels=snap()['channels']))
@@ -192,6 +249,9 @@ def register(app, server):
         ('GET', '/status', status), ('GET', '/state', state), ('GET', '/controls', controls),
         ('GET', '/telemetry', telemetry), ('GET', '/telemetry/{sensor}', sensor),
         ('GET', '/gps', gps), ('GET', '/gps/track', gps_track), ('DELETE', '/gps/track', gps_track_clear),
+        ('GET', '/obs', obs_status), ('PATCH', '/obs/connection', obs_connection), ('POST', '/obs/scene', obs_scene),
+        ('GET', '/scene-modes', modes), ('PUT', '/scene-modes', modes_put), ('GET', '/scene-modes/state', modes_state),
+        ('POST', '/scene-modes/apply', modes_apply),
         ('GET', '/channels', channels), ('GET', '/channels/{n}', channel), ('GET', '/styles', styles),
         ('GET', '/settings', settings),
         ('PUT', '/settings', settings_write(fx.replace)), ('PATCH', '/settings', settings_write(fx.save)),

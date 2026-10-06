@@ -40,6 +40,13 @@ To close this gap: copy the current script, **Discover new sensors** on the radi
 Open items: whether `getValue("GPS")` returns a table on this EdgeTX build (documented, unverified), whether attitude values are radians as
 EdgeTX documents, and that the longer script keeps the 20 Hz control rate on the Pocket.
 
+## Scene switching (`/modes`)
+
+Checked against the real OBS (32.2.1, obs-websocket 5.7.4, no password) **read-only**: connection, version, current scene and the scene list, whose order matches
+OBS's scene panel exactly. Scene *switching* was never run against your live OBS during development; it is covered by a fake obs-websocket server (handshake with and without a
+password, wrong password, events, reconnects) and by end-to-end tests from radio channel records to the scene request. **The password handshake has not been tried against a real OBS
+that requires one**, and the Learn button has only been tested as logic, not with a real switch.
+
 ## Automated tests
 
 - **Python**: protocol and framing, state (resets, gaps, aging), recording and replay, `check-log`, settings storage and
@@ -49,6 +56,8 @@ EdgeTX documents, and that the longer script keeps the 20 Hz control rate on the
 - **Browser**: the classic overlay in jsdom; `/fx`, `/setup`, `/docs` rendered in headless Chrome (including a real double-click,
   Learn, and settings saved to the server).
 - **HUD in headless Chrome**: all pages, four style/layout combinations and the map: only visible tiles requested (no duplicates), the browser's Referer sent, no retry storm when tiles fail, offline fallback drawn.
+- **Modes page in headless Chrome**: add ranges, drag and keyboard-move handles, handles stopping at each other, sorting by buttons and by dragging, "Show in OBS", the master switch, removing ranges.
+- **Scene engine**: range boundaries, priority, held button returning to the previous scene, debounce, stale radio data, reconnect without a surprise switch, failed switches.
 - **Radio script**: syntax checked with `luac`; run against mocked EdgeTX functions (normal, failing reads, failing channel lookup)
   with every emitted line accepted by the real parser.
 - **Frozen binary** (Linux): all pages, assets, API and a recording exercised against the PyInstaller build.

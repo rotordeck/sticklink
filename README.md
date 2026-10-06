@@ -25,9 +25,11 @@ overlays, and records every session so you can check and reuse the data later.
 - **Receiver setup page** (`/setup`): a live 3D quad, stick bars and a 16-channel monitor, like Betaflight Configurator's
   receiver tab. Press **Learn** and move a stick or switch to assign roll, pitch, yaw, throttle, ARM and Crash Flip, so a
   swapped or reversed stick is a ten-second fix.
-- **Double-click to configure**: style, effect strength, stick layout (modes 1-4), size and video delay, saved on the
+- **Double-click to configure**: style, effect strength, size and video delay, saved on the
   server so an OBS source updates by itself. The panel also shows a **permanent link** for the current look: use it as a source's URL to pin
   that source to its own configuration.
+- **Scene switching** (`/modes`): a Betaflight-style Modes page for your **OBS scenes**: give each scene ranges on a switch channel, sort them so the
+  upper scene wins, and OBS follows your switches (via OBS's built-in WebSocket). Off until you turn it on, and it never acts on stale radio data.
 - **Recordings**: one JSONL file per session, a `check-log` quality report (rate, gaps, lost records, channel ranges) and
   `replay` to play a session back through the overlay.
 - **REST API + Swagger UI** (`/docs`, works offline) and a WebSocket stream for your own tools.
@@ -61,6 +63,7 @@ Prefer Python? `pip install sticklink-<version>-py3-none-any.whl` (from the rele
 | `/fx` | Effects overlay for OBS (double-click for settings) |
 | `/hud`, `/hud/link`, `/hud/battery`, `/hud/gps` | Telemetry HUD (combined, or one block per page) |
 | `/setup` | Receiver screen: 3D quad, channel monitor, learn-by-moving assignment |
+| `/modes` | Pick which OBS scene a switch selects (ranges per scene, sorted by priority) |
 | `/overlay` | The plain panel with two sticks, ARM/flip lamps and telemetry |
 | `/docs` | Swagger UI for the REST API (spec at `/api/v1/openapi.json`) |
 | `sticklink run --port P \| --demo` | Serve the overlays from a radio or from synthetic data |
@@ -79,6 +82,7 @@ More in [docs/cli.md](docs/cli.md).
 | [Radio setup](docs/radio-setup.md) | EdgeTX script, USB-VCP, per-OS port names |
 | [OBS setup](docs/obs-setup.md) | Browser source, Linux/Wayland notes |
 | [Overlay guide](docs/overlay-guide.md) | `/fx`, `/setup`, the classic overlay, settings and URL options |
+| [Scene switching](docs/scenes.md) | `/modes`: switch OBS scenes from radio switches |
 | [CLI reference](docs/cli.md) | All commands and options |
 | [REST API](docs/api.md) | Endpoints, examples, security model |
 | [Protocol and log format](docs/protocol.md) | DDLOG v1, the JSONL recording format |

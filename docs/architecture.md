@@ -15,6 +15,8 @@ radio (DDSTK.lua) --USB serial--> Source --> Pipeline --> OverlayServer --WebSoc
 | `sinks/jsonl_log.py`, `recorder.py` | The recording file format; start/stop and the recordings folder |
 | `server.py`, `api.py`, `openapi.py` | aiohttp app: pages, WebSocket, REST API, Host guard, the OpenAPI document |
 | `geo.py` | Distance and bearing for the GPS block |
+| `obs.py` | A small obs-websocket v5 client: scenes, current scene, switching; reconnects by itself |
+| `scenes.py` | The scene-mode store (private file, validation) and `SceneEngine`: channel ranges to scene switches, with debounce, priority and safety rules |
 | `fxconfig.py` | Validated, atomically written overlay settings and defaults (including the HUD and map settings) |
 | `analysis.py` | `check-log` / report |
 | `cli.py` | The command line |
@@ -30,6 +32,7 @@ radio (DDSTK.lua) --USB serial--> Source --> Pipeline --> OverlayServer --WebSoc
 | `src/mapping.ts` | Which input drives which function, and the learn-by-moving detector |
 | `src/element.ts`, `src/index.ts` | The `<stick-fx>` page element (canvas, settings panel, config sync) |
 | `src/setup.ts`, `src/drone3d.ts` | The `/setup` page and its 3D quad |
+| `src/modes/` | The `/modes` page: microsecond scale and handle maths (`scale.ts`), the card list and edits (`model.ts`), the DOM page (`modes-page.ts`) |
 | `src/curve.ts` | Monotone cubic interpolation |
 | `src/hud/catalog.ts` | Sensor names to labelled badges, units, bars and warning levels; builds the Link, Battery and GPS models (pure) |
 | `src/hud/geo.ts`, `layout.ts`, `history.ts` | Map projection and tile maths, block placement for each layout, sparkline buffers (pure) |

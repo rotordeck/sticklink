@@ -11,6 +11,7 @@ from .fxconfig import FxConfigStore
 from .pipeline import Pipeline
 from .server import OverlayServer
 from .recorder import Recorder
+from .scenes import SceneStore
 from .sources.demo import DemoSource
 from .sources.replay import ReplaySource
 from .sources.serial_port import SerialSource
@@ -31,6 +32,7 @@ def parser():
         sp.add_argument('--log', help='start recording a JSONL session log to this file right away')
         sp.add_argument('--recordings-dir', help='folder for recordings made through the API (default ~/.local/share/sticklink/recordings)')
         sp.add_argument('--fx-config', help='overlay settings file (default ~/.config/sticklink/fx.json)')
+        sp.add_argument('--scenes-config', help='OBS connection and scene-mode settings, incl. the OBS password (default ~/.config/sticklink/scenes.json)')
 
     run = sub.add_parser('run', help='serve the overlay from a radio or the demo')
     run.add_argument('--port', help='COM5, /dev/ttyACM0, /dev/cu.usbmodem…')
@@ -97,5 +99,6 @@ def main(argv=None):
     if args.log:
         recorder.start_path(args.log)
     print(f'OBS browser source: http://127.0.0.1:{args.http_port}/overlay   API docs: http://127.0.0.1:{args.http_port}/docs', flush=True)
-    web.run_app(OverlayServer(pipeline, source, fx_config=FxConfigStore(args.fx_config), recorder=recorder).app(),
+    web.run_app(OverlayServer(pipeline, source, fx_config=FxConfigStore(args.fx_config), recorder=recorder,
+                              scene_store=SceneStore(args.scenes_config)).app(),
                 host='127.0.0.1', port=args.http_port)
