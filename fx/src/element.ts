@@ -8,6 +8,7 @@ import { applyMapping } from './mapping.ts';
 import { StickLinkClient } from '../../src/sticklink/web/client.js';
 
 const FPS = 60;
+const GIMBAL = 0.17; // gimbal box as a fraction of the reference size (stickcam's layout)
 const FONTS = ['16px Bungee', 'italic 900 16px Orbitron', '700 16px Fredoka', '16px VT323'];
 const STYLES = PRESETS.map((p) => p.id);
 
@@ -20,6 +21,7 @@ export class StickFx extends HTMLElement {
   private feed!: LiveFeed;
   private scene!: Scene;
   private settings!: Settings;
+  private builtSize = 0; private resizeTimer = 0;
   private ctx = this.canvas.getContext('2d')!;
   private acc = 0; private lastTs = 0; private raf = 0; private ready = false;
   private lastState: any = null; private lastSession: unknown = null; private lastSampleT = -Infinity;
@@ -30,7 +32,7 @@ export class StickFx extends HTMLElement {
     super();
     const root = this.attachShadow({ mode: 'open' });
     root.innerHTML = `<style>
-      :host{display:block;position:relative}canvas{display:block}
+      :host{display:block;position:fixed;inset:0}canvas{display:block}
       .panel{position:fixed;inset:8px auto auto 8px;max-width:min(340px,calc(100vw - 16px));max-height:calc(100vh - 16px);overflow:auto;
         box-sizing:border-box;padding:12px 14px;border-radius:10px;background:#0b1420f2;border:1px solid #7d94ac66;color:#e6eef7;
         font:12px/1.4 Arial,sans-serif;z-index:10}
@@ -59,6 +61,7 @@ export class StickFx extends HTMLElement {
     this.rebuild();
     this.client = new StickLinkClient(this.cfg.delay);
     this.client.start();
+    window.addEventListener('resize', this.onResize);
     document.addEventListener('dblclick', this.toggle);
     document.addEventListener('keydown', this.onKey);
     this.poll = setInterval(() => this.fetchConfig().then((changed) => changed && this.apply()), 2000);
@@ -69,10 +72,12 @@ export class StickFx extends HTMLElement {
 
   disconnectedCallback() {
     cancelAnimationFrame(this.raf); clearInterval(this.poll);
+    window.removeEventListener('resize', this.onResize);
     document.removeEventListener('dblclick', this.toggle); document.removeEventListener('keydown', this.onKey);
     this.client?.stop();
   }
 
+  private onResize = () => { cancelAnimationFrame(this.resizeTimer); this.resizeTimer = requestAnimationFrame(() => this.buildScene()); };
   private toggle = () => { this.panel.hidden = !this.panel.hidden; if (!this.panel.hidden) this.syncPanel(); };
   private onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') this.panel.hidden = true; };
 
@@ -102,23 +107,37 @@ export class StickFx extends HTMLElement {
 
   /** Apply this.cfg: cheap changes in place, mode/size by rebuilding the scene. */
   private apply() {
-    const rebuilt = this.cfg.mode !== this.feed.mode || this.cfg.size !== this.settings.cropRef;
-    if (rebuilt) this.rebuild();
+    if (this.cfg.mode !== this.feed.mode) this.rebuild();
+    else if (this.cfg.size !== this.builtSize) this.buildScene();
     this.scene.style = presetById(this.cfg.style).style;
     this.settings.chaos = this.cfg.chaos;
     this.client.delayMs = this.cfg.delay;
     this.syncPanel();
   }
 
+  /** New stick history (mode changed) and a scene to match. */
   private rebuild() {
     this.feed = new LiveFeed(FPS, this.cfg.mode);
-    this.settings = { ...DEFAULT_SETTINGS, crop: true, cropRef: this.cfg.size, mode: rendererMode(this.cfg.mode), chaos: this.cfg.chaos, fps: FPS };
+    this.acc = 0;
+    this.buildScene();
+  }
+
+  /**
+   * The overlay fills the whole page (the OBS source, whatever size it has) and the gimbals sit in its middle, so a
+   * source that is bigger or smaller than the recommended size is still centred. It shrinks if the source is small.
+   */
+  private buildScene() {
+    const vw = Math.max(64, window.innerWidth || 576), vh = Math.max(64, window.innerHeight || 450);
+    const gap = DEFAULT_SETTINGS.gap;
+    const g = Math.min(this.cfg.size * GIMBAL, (0.94 * vw) / (2 + gap), 0.6 * vh); // wanted size, limited to what fits
+    this.settings = { ...DEFAULT_SETTINGS, crop: false, width: vw, height: vh, position: 'middle', size: g / Math.min(vw, vh), gap,
+      mode: rendererMode(this.cfg.mode), chaos: this.cfg.chaos, fps: FPS };
     const scale = Math.max(1, window.devicePixelRatio || 1);
     this.scene = createScene(this.feed.track, this.feed.motion, presetById(this.cfg.style).style, this.settings, scale);
     const L = this.scene.layout;
     this.canvas.width = Math.round(L.W * scale); this.canvas.height = Math.round(L.H * scale);
     this.canvas.style.width = `${L.W}px`; this.canvas.style.height = `${L.H}px`;
-    this.acc = 0;
+    this.builtSize = this.cfg.size;
   }
 
   private tick = (ts: number) => {
@@ -174,8 +193,8 @@ export class StickFx extends HTMLElement {
     (['style', 'chaos', 'mode', 'delay', 'size'] as const).forEach((k) => set(k, c[k]));
     this.panel.querySelector('.blurb')!.textContent = presetById(c.style).blurb;
     this.panel.querySelector('.chaosv')!.textContent = c.chaos.toFixed(2);
-    const L = this.scene.layout;
-    this.panel.querySelector('.hint')!.textContent = `OBS Browser Source size: ${L.W} × ${L.H}. Double-click or Esc closes this panel. Changes save automatically.`;
+    const tight = computeLayout({ ...DEFAULT_SETTINGS, crop: true, cropRef: c.size });
+    this.panel.querySelector('.hint')!.textContent = `Recommended OBS Browser Source size: ${tight.W} × ${tight.H} (any size works: the overlay centres itself). Double-click or Esc closes this panel. Changes save automatically.`;
   }
 
   private readPanel() {

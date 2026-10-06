@@ -10,4 +10,5 @@ First packaged version.
 - Smooth, lag-free trails from 20 Hz radio data.
 - Session recordings (JSONL), `replay`, `check-log` quality reports.
 - REST API with OpenAPI spec and offline Swagger UI (`/docs`).
+- The effects overlay fills any Browser Source size and keeps the gimbals centered in it.
 - Self-contained binaries for Linux, Windows and macOS, plus a Python wheel and source package.

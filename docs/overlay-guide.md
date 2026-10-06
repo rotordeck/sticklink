@@ -16,11 +16,14 @@ The stickcam look, live: gimbal frames, glowing trails, sparks, shockwaves, a th
 | Effects | Strength of the effects, 0 to 2 (sparks, shocks, shake) |
 | Stick layout | Mode 1 to 4: which stick carries which axes (see below) |
 | Video delay (ms) | Extra delay for the overlay, to line it up with a delayed video source |
-| Size (px) | Reference size; sets the Browser Source size shown in the panel |
+| Size (px) | How big the gimbals are drawn (a reference size, default 1080); the panel shows the recommended Browser Source size for it |
 
 Everything is saved by the server (`~/.config/sticklink/fx.json`) and applies to every open copy of the page within about
 two seconds. Saved settings win over URL options; URL options (`?style=neon&chaos=1&mode=2&delay=0&size=1080`) only
 fill in what has not been saved yet.
+
+**Centering.** The overlay fills the whole page and keeps the gimbals in the middle of it, so it is centered in an OBS source of any
+size or proportion, and it resizes with the source. If the source is too small for the chosen size, the gimbals are drawn smaller.
 
 **What the effects react to.** Only what sticks and switches can drive: trails and sparks follow stick speed, a snap
 (stick slammed to the edge) and a punch-out (throttle up fast) pop, full throttle and hang time get timers, arm/disarm

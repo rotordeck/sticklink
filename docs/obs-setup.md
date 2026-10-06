@@ -7,8 +7,9 @@ Sticklink serves web pages; OBS shows them with its **Browser** source. The prog
 1. In **Sources** click **+** and choose **Browser**.
 2. **URL**: `http://127.0.0.1:8765/fx` (use `/overlay` for the plain panel; change the port if you started Sticklink with `--http-port`).
 3. Leave **Local file** off.
-4. **Width x Height**: **576 x 450** for the default size. Double-click the page in a normal browser to see the exact size for your
-   settings, shown in the panel.
+4. **Width x Height**: **576 x 450** is recommended (the settings panel shows the size for your settings). Any size works: the
+   overlay fills the whole source and keeps the gimbals in its middle, and it shrinks to fit if the source is small. Resize
+   the source freely in OBS; there is no need to match a number exactly.
 5. Tick **Use custom frame rate** and enter **60**. At OBS's default 30 fps the smooth trails look choppy.
 6. Leave the default custom CSS: the page is transparent, so no chroma key is needed.
 7. Turn off **Shutdown source when not visible** and **Refresh browser when scene becomes active**, so the connection stays up.
