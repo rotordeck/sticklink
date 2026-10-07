@@ -3,7 +3,7 @@ import os
 import sys
 import webbrowser
 import tkinter as tk
-from tkinter import filedialog
+from pathlib import Path
 
 import customtkinter as ctk
 
@@ -152,6 +152,100 @@ class Dialog(ctk.CTkToplevel):
         return self.result
 
 
+class Chooser(ctk.CTkToplevel):
+    """A folder or file picker in the window's own style (the stock Tk one is not). `folder=True` picks a folder, otherwise a file whose
+    suffix is in `suffixes` (any file when empty). `pick()` returns the chosen path as a string, None when cancelled."""
+
+    def __init__(self, parent, title, folder=True, start=None, suffixes=()):
+        super().__init__(parent, fg_color=Y['window'])
+        self.folder, self.suffixes, self.result, self.chosen = folder, tuple(suffixes), None, None
+        self.title(title)
+        self.geometry('520x420')
+        self.minsize(420, 320)
+        self.transient(parent)
+        self.columnconfigure(0, weight=1)
+        self.rowconfigure(1, weight=1)
+        bar = ctk.CTkFrame(self, fg_color=Y['window'])
+        bar.grid(row=0, column=0, sticky='ew', padx=12, pady=(12, 6))
+        bar.columnconfigure(1, weight=1)
+        self.up = ctk.CTkButton(bar, text='Up', width=48, corner_radius=4, fg_color=Y['input'], hover_color=Y['hover'],
+                                text_color=Y['text'], command=lambda: self.go(self.here.parent))
+        self.up.grid(row=0, column=0, padx=(0, 6))
+        self.path = ctk.CTkEntry(bar, corner_radius=4, fg_color=Y['input'], border_color=Y['border'], text_color=Y['text'])
+        self.path.grid(row=0, column=1, sticky='ew')
+        self.path.bind('<Return>', lambda _: self.go(Path(self.path.get()).expanduser()))
+        self.items = ctk.CTkScrollableFrame(self, fg_color=Y['base'], corner_radius=4, scrollbar_button_color=Y['hover'],
+                                            scrollbar_button_hover_color=Y['border'])
+        self.items.grid(row=1, column=0, sticky='nsew', padx=12, pady=6)
+        self.items.columnconfigure(0, weight=1)
+        foot = ctk.CTkFrame(self, fg_color=Y['window'])
+        foot.grid(row=2, column=0, sticky='ew', padx=12, pady=(6, 12))
+        foot.columnconfigure(0, weight=1)
+        self.note = ctk.CTkLabel(foot, text='', text_color=Y['muted'], anchor='w')
+        self.note.grid(row=0, column=0, sticky='ew')
+        ctk.CTkButton(foot, text='Cancel', width=96, corner_radius=4, fg_color=Y['input'], hover_color=Y['hover'], text_color=Y['text'],
+                      command=self.destroy).grid(row=0, column=1, padx=(4, 0))
+        self.select = ctk.CTkButton(foot, text='Select', width=96, corner_radius=4, fg_color=Y['primary'], hover_color=Y['primary_hover'],
+                                    text_color=Y['on_primary'], command=self.finish)
+        self.select.grid(row=0, column=2, padx=(4, 0))
+        self.bind('<Escape>', lambda _: self.destroy())
+        self.protocol('WM_DELETE_WINDOW', self.destroy)
+        start = Path(start).expanduser() if start else Path.home()
+        self.go(start if start.is_dir() else Path.home())
+        self.update_idletasks()
+        x = parent.winfo_rootx() + (parent.winfo_width() - self.winfo_width()) // 2
+        y = parent.winfo_rooty() + (parent.winfo_height() - self.winfo_height()) // 2
+        self.geometry(f'+{max(x, 0)}+{max(y, 0)}')
+
+    def go(self, folder):
+        try:
+            entries = sorted(folder.iterdir(), key=lambda e: (not e.is_dir(), e.name.lower()))
+        except OSError as exc:
+            self.note.configure(text=f'Cannot open: {exc.strerror or exc}')
+            return
+        self.here, self.chosen = folder, None
+        self.path.delete(0, 'end')
+        self.path.insert(0, str(folder))
+        self.up.configure(state='normal' if folder.parent != folder else 'disabled')
+        for child in self.items.winfo_children():
+            child.destroy()
+        shown = [e for e in entries if not e.name.startswith('.') and (e.is_dir() or (not self.folder and (not self.suffixes or e.suffix.lower() in self.suffixes)))]
+        for row, entry in enumerate(shown):
+            is_dir = entry.is_dir()
+            ctk.CTkButton(self.items, text=('> ' if is_dir else '   ') + entry.name, anchor='w', corner_radius=4, fg_color='transparent',
+                          hover_color=Y['hover'], text_color=Y['text'] if is_dir else Y['muted'],
+                          command=lambda e=entry: self.click(e)).grid(row=row, column=0, sticky='ew', pady=1)
+            # a double click opens a folder or takes a file
+            self.items.winfo_children()[-1].bind('<Double-Button-1>', lambda _, e=entry: self.go(e) if e.is_dir() else self.finish(), add='+')
+        if not shown:
+            ctk.CTkLabel(self.items, text='Nothing to show here', text_color=Y['muted']).grid(row=0, column=0, pady=12)
+        self.refresh()
+
+    def click(self, entry):
+        self.chosen = entry
+        self.refresh()
+
+    def refresh(self):
+        target = self.chosen or (self.here if self.folder else None)
+        ok = target is not None and (target.is_dir() if self.folder else target.is_file())
+        self.select.configure(state='normal' if ok else 'disabled')
+        self.note.configure(text=target.name or str(target) if target is not None else 'Choose a file')
+
+    def finish(self):
+        target = self.chosen or (self.here if self.folder else None)
+        if target is None or (self.folder and not target.is_dir()) or (not self.folder and not target.is_file()):
+            return
+        self.result = str(target)
+        self.destroy()
+
+    def pick(self):
+        self.wait_visibility()
+        self.grab_set()
+        self.focus_set()
+        self.wait_window()
+        return self.result
+
+
 class Window:
     def __init__(self, root, service):
         self.root, self.service = root, service
@@ -285,7 +379,7 @@ class Window:
             if cards is None:
                 return
             if not cards:
-                chosen = filedialog.askdirectory(title='Choose the radio SD card')
+                chosen = Chooser(self.root, 'Choose the radio SD card').pick()
                 if not chosen:
                     return
                 cards = [chosen]
@@ -295,7 +389,7 @@ class Window:
                 return
         else:
             self.info('Several radio cards found. Choose the one to use.')
-            chosen = filedialog.askdirectory(title='Choose the radio SD card', initialdir=str(cards[0].parent))
+            chosen = Chooser(self.root, 'Choose the radio SD card', start=cards[0].parent).pick()
             if not chosen:
                 return
         try:
@@ -309,7 +403,7 @@ class Window:
                             '3. Restart the radio, plug it in and choose "USB Serial (VCP)".')
 
     def add_theme(self):
-        source = filedialog.askopenfilename(title='Choose a theme (.zip or .json)', filetypes=[('Theme', '*.zip *.json'), ('All files', '*')])
+        source = Chooser(self.root, 'Choose a theme (.zip or .json)', folder=False, suffixes=('.zip', '.json')).pick()
         if not source:
             return
         store = (self.service.server_options.get('theme_store') or ThemeStore())

@@ -151,7 +151,7 @@ def register(app, server):
 
     async def modes_apply(request):
         await json_body(request, allow_empty=True)
-        if engine.blocked == 'obs_not_connected' or obs.status != 'connected':
+        if obs.status != 'connected':  # the live status, not engine.blocked: that is only refreshed on the engine's next tick
             return error(409, 'obs_not_connected', 'OBS is not connected')
         try:
             scene = engine.apply_now()

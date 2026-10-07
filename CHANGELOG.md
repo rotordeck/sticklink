@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- The window's folder and theme pickers now use the Rotordeck look too (they were the plain system dialogs).
+- `POST /api/v1/scene-modes/apply` no longer answers `obs_not_connected` for a moment right after OBS connects.
+
 ## 0.1.3 (2026-10-07)
 
 - The web pages (`/setup`, `/modes`, `/docs`, the overlay panels) now share the Rotordeck look of the window: olive-black and lime, logo in the header. Shared styles live in `web/brand.css`.
