@@ -17,6 +17,7 @@ class RadioState:
         self.error = 'waiting for radio'
         self.invalid = self.missing = self.resets = self.samples = 0
         self.logger = None
+        self.mapping = None  # callable -> the /setup mapping; the race timer uses its arm and flip switches
         self.notes = []  # radio-side diagnostics (D records), newest last
         self.reset_gps()
         self.session = 0
@@ -87,7 +88,7 @@ class RadioState:
             self.controls = record['channels']
             self.arm = self.controls['arm'] > cfg.arm_threshold
             self.crash = self.controls['crash'] > cfg.crash_threshold
-            self.race.feed(tick, self.arm, self.crash)
+            self.feed_race(tick)
             self.last_sample = now
             self.samples += 1
         elif record['type'] == 'G':
@@ -98,12 +99,36 @@ class RadioState:
             first = record['first']
             self.outputs[first-1:first-1+len(record['outputs'])] = record['outputs']
             self.output_times[first] = now
+            self.feed_race(tick)
         elif record['type'] == 'E':
             setattr(self, record['event'].lower(), bool(record['value']))
         else:
             self.telemetry[record['sensor']] = dict(
                 value=record['value'], current=record['current'],
                 fresh=record['fresh'], received=now)
+
+    def source_value(self, src):
+        """Raw value of 'in:roll'...'in:crash' or 'ch:1'..'ch:16', or None when it is not known yet."""
+        if src.startswith('ch:'):
+            n = int(src[3:])
+            return self.outputs[n-1] if (1 if n <= 8 else 9) in self.output_times else None
+        return None if self.controls is None else self.controls.get(src[3:])
+
+    def switch_on(self, spec):
+        value = None if spec is None else self.source_value(spec['src'])
+        if value is None:
+            return None
+        return value > spec['thr'] if spec['dir'] == 1 else value < spec['thr']
+
+    def feed_race(self, tick):
+        """Race timer inputs: the arm and flip switches as mapped on /setup (the radio's channels 5 and 8 when not mapped)."""
+        m = (self.mapping() if self.mapping else None) or {}
+        arm_spec = m['arm'] if 'arm' in m else dict(src='in:arm', thr=self.config.arm_threshold, dir=1)
+        flip_spec = m.get('flip') or dict(src='in:crash', thr=self.config.crash_threshold, dir=1)
+        armed = True if arm_spec is None else self.switch_on(arm_spec)  # no arm switch mapped: no gate
+        if armed is None:
+            return
+        self.race.feed(tick, armed, self.switch_on(flip_spec))
 
     def ingest_gps(self, record, now):
         lat, lon = record['lat'], record['lon']

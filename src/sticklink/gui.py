@@ -9,22 +9,70 @@ import customtkinter as ctk
 
 from . import __version__
 from .themes import ThemeError, ThemeStore
+from . import radio_install
 from .service import PAGES, Service, running_sticklink
 
 DEMO = 'Demo (no radio)'
-# Colours from OBS Studio's Yami theme, so the window looks at home next to OBS.
-Y = dict(window='#1D1F26', base='#272A33', input='#3C404D', hover='#464B59', border='#5B6273', text='#FFFFFF',
-         muted='#969696', primary='#284CB8', primary_hover='#476BD7', link='#718CDC')
-COLOURS = {'off': '#969696', 'wait': '#E5AF24', 'ok': '#37D247', 'bad': '#E33B57'}
+# OBS-style dark window (flat, 4px corners, dense) in the Rotordeck palette: olive-black ground, lime accent, mono labels.
+Y = dict(window='#141611', base='#1D2019', input='#272B21', hover='#35392E', border='#35392E', text='#F1F2E9',
+         muted='#A0A496', primary='#C3F45C', primary_hover='#D5FF83', on_primary='#141611', link='#C3F45C')
+COLOURS = {'off': '#A0A496', 'wait': '#E5AF24', 'ok': '#C3F45C', 'bad': '#E33B57'}
+
+
+def mark(root, size):
+    """The Rotordeck mark (four props joined by crossed arms, on a lime tile) as a tk image, rasterised with 3x3 supersampling."""
+    def seg(x, y, ax, ay, bx, by):
+        dx, dy = bx - ax, by - ay
+        t = max(0, min(1, ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy)))
+        return ((x - ax - t * dx) ** 2 + (y - ay - t * dy) ** 2) ** .5
+
+    def inside(x, y):  # x, y in the 40x40 design space
+        if min(x, y, 40 - x, 40 - y) < 0:
+            return None
+        cx, cy = min(x, 40 - x), min(y, 40 - y)
+        if cx < 10 and cy < 10 and (10 - cx) ** 2 + (10 - cy) ** 2 > 100:
+            return None  # outside the tile's rounded corner
+        ink = min(seg(x, y, 11, 11, 29, 29), seg(x, y, 29, 11, 11, 29)) <= 1.5
+        ink = ink or any(abs(((x - px) ** 2 + (y - py) ** 2) ** .5 - 6) <= 1.5 for px, py in ((11, 11), (29, 11), (11, 29), (29, 29)))
+        return Y['window'] if ink else Y['primary']
+
+    img = tk.PhotoImage(master=root, width=size, height=size)
+    k = 40 / size
+    for py in range(size):
+        row = []
+        for px in range(size):
+            hits = [inside((px + (i + .5) / 3) * k, (py + (j + .5) / 3) * k) for i in range(3) for j in range(3)]
+            lime, dark = hits.count(Y['primary']), hits.count(Y['window'])
+            if lime + dark == 0:
+                row.append(Y['window'])  # transparent corner: blend into the window
+            else:
+                f = dark / (lime + dark)
+                row.append('#%02x%02x%02x' % tuple(round(int(Y['primary'][i:i + 2], 16) * (1 - f) + int(Y['window'][i:i + 2], 16) * f) for i in (1, 3, 5)))
+        img.put('{' + ' '.join(row) + '}', to=(0, py))
+    return img
+
+
+
+# What an EdgeTX / OpenTX radio (or an RC transmitter in the same family) calls itself over USB.
+RADIO_WORDS = ('radiomaster', 'edgetx', 'opentx', 'jumper', 'frsky', 'taranis', 'horus', 'tbs', 'crossfire', 'flysky', 'betaflight',
+               'pocket', 'boxer', 'zorro', 'tx16', 'tx12', 'mt12', 'gx12', 'x9d', 'x10', 'x-lite', 'qx7', 'stm32', 'virtual com')
+RADIO_VIDS = (0x1209, 0x0483)  # pid.codes (EdgeTX) and STMicroelectronics, whose VCP most radios use
+
+
+def looks_like_radio(info):
+    text = f'{info.description} {info.manufacturer or ""} {info.product or ""}'.lower()
+    return info.vid in RADIO_VIDS or any(w in text for w in RADIO_WORDS)
 
 
 def ports():
+    """[(choice text, looks like a radio)], radios first. Linux lists every built-in serial port (ttyS0...) with no
+    hardware id: those are never a radio."""
     try:
         from serial.tools.list_ports import comports
-        # Linux lists every built-in serial port (ttyS0...) with no hardware id: those are never a radio.
-        return [f'{p.device}  {p.description}' for p in comports() if p.hwid and p.hwid != 'n/a']
+        found = [(f'{p.device}  {p.description}', looks_like_radio(p)) for p in comports() if p.hwid and p.hwid != 'n/a']
     except Exception:
         return []
+    return sorted(found, key=lambda f: not f[1])
 
 
 def hide_console():
@@ -43,53 +91,93 @@ def hide_console():
 class Window:
     def __init__(self, root, service):
         self.root, self.service = root, service
+        self.radios, self.chosen = set(), False
         root.title(f'Sticklink {__version__}')
         root.resizable(False, False)
         root.configure(fg_color=Y['window'])
         frame = ctk.CTkFrame(root, fg_color=Y['window'])
         frame.grid(padx=14, pady=14)
-        ctk.CTkLabel(frame, text='Radio', text_color=Y['muted']).grid(row=0, column=0, sticky='w')
+        self.icon, self.logo = mark(root, 64), mark(root, 32)
+        try:
+            root.iconphoto(True, self.icon)
+        except tk.TclError:
+            pass
+        head = ctk.CTkFrame(frame, fg_color=Y['window'])
+        head.grid(row=0, column=0, columnspan=2, sticky='we', pady=(0, 14))
+        tk.Label(head, image=self.logo, bd=0, bg=Y['window']).grid(row=0, column=0, rowspan=2, padx=(0, 10))
+        ctk.CTkLabel(head, text='Sticklink', text_color=Y['text'], font=ctk.CTkFont(size=20, weight='bold')).grid(row=0, column=1, sticky='w')
+        ctk.CTkLabel(head, text=f'BY ROTORDECK  \u00b7  v{__version__}', text_color=Y['muted'], font=self.mono(10)).grid(row=1, column=1, sticky='w')
+        ctk.CTkLabel(frame, text='RADIO', text_color=Y['muted'], font=self.mono(10)).grid(row=1, column=0, sticky='w')
+        self.hint = ctk.CTkLabel(frame, text='', text_color=COLOURS['ok'], font=self.mono(10))
+        self.hint.grid(row=1, column=0, columnspan=2, sticky='e')
         self.choice = ctk.CTkComboBox(frame, width=340, state='readonly', corner_radius=4, border_width=1, border_color=Y['border'],
                                       fg_color=Y['input'], button_color=Y['input'], button_hover_color=Y['hover'],
-                                      dropdown_fg_color=Y['input'], dropdown_hover_color=Y['primary'], text_color_disabled=Y['muted'])
-        self.choice.grid(row=1, column=0, sticky='we')
-        self.small(frame, 'Refresh', self.refresh).grid(row=1, column=1, padx=(6, 0))
+                                      dropdown_fg_color=Y['input'], dropdown_hover_color=Y['hover'], text_color=Y['text'], dropdown_text_color=Y['text'], text_color_disabled=Y['muted'])
+        self.choice.configure(command=self.picked)
+        self.choice.grid(row=2, column=0, sticky='we')
+        self.small(frame, 'Refresh', self.refresh).grid(row=2, column=1, padx=(6, 0))
         self.button = ctk.CTkButton(frame, text='Start', command=self.toggle, corner_radius=4, height=32, fg_color=Y['primary'],
-                                    hover_color=Y['primary_hover'], text_color_disabled=Y['muted'])
-        self.button.grid(row=2, column=0, columnspan=2, sticky='we', pady=12)
+                                    hover_color=Y['primary_hover'], text_color=Y['on_primary'], text_color_disabled=Y['muted'],
+                                    font=ctk.CTkFont(size=13, weight='bold'))
+        self.button.grid(row=3, column=0, columnspan=2, sticky='we', pady=12)
         self.dot = ctk.CTkLabel(frame, text='●', font=ctk.CTkFont(size=18))
-        self.dot.grid(row=3, column=0, sticky='w')
+        self.dot.grid(row=4, column=0, sticky='w')
         self.status = ctk.CTkLabel(frame, text='', wraplength=380, justify='left')
-        self.status.grid(row=3, column=0, sticky='w', padx=(26, 0), columnspan=2)
-        tk.Frame(frame, bg=Y['input'], height=1).grid(row=4, column=0, columnspan=2, sticky='we', pady=12)
+        self.status.grid(row=4, column=0, sticky='w', padx=(26, 0), columnspan=2)
+        tk.Frame(frame, bg=Y['border'], height=1).grid(row=5, column=0, columnspan=2, sticky='we', pady=12)
         self.link = ctk.CTkLabel(frame, text='', text_color=Y['link'], cursor='hand2', font=ctk.CTkFont(underline=True))
-        self.link.grid(row=5, column=0, columnspan=2, sticky='w')
+        self.link.grid(row=6, column=0, columnspan=2, sticky='w')
         self.link.bind('<Button-1>', lambda _: self.open('/fx'))
         pages = ctk.CTkFrame(frame, fg_color=Y['window'])
-        pages.grid(row=6, column=0, columnspan=2, sticky='w', pady=(6, 0))
+        pages.grid(row=7, column=0, columnspan=2, sticky='w', pady=(6, 0))
         self.page_buttons = []
         for i, (label, path) in enumerate(PAGES):
             b = self.small(pages, label, lambda p=path: self.open(p))
             b.grid(row=i // 3, column=i % 3, padx=(0, 4), pady=2)
             self.page_buttons.append(b)
         extra = ctk.CTkFrame(frame, fg_color=Y['window'])
-        extra.grid(row=7, column=0, columnspan=2, sticky='w', pady=(8, 0))
+        extra.grid(row=8, column=0, columnspan=2, sticky='w', pady=(8, 0))
         self.small(extra, 'Add theme...', self.add_theme).grid(row=0, column=0, padx=(0, 4))
-        self.small(extra, 'Themes folder', self.open_themes).grid(row=0, column=1)
+        self.small(extra, 'Themes folder', self.open_themes).grid(row=0, column=1, padx=(0, 4))
+        self.small(extra, 'Radio script...', self.install_script).grid(row=0, column=2)
         self.refresh()
+        self.root.after(2000, self.rescan)
         self.tick()
         root.protocol('WM_DELETE_WINDOW', self.close)
 
     @staticmethod
+    def mono(size):
+        import tkinter.font
+        return ctk.CTkFont(family=tkinter.font.nametofont('TkFixedFont').actual('family'), size=size)
+
+    @staticmethod
     def small(parent, text, command):
         return ctk.CTkButton(parent, text=text, command=command, corner_radius=4, fg_color=Y['input'], hover_color=Y['hover'],
-                             text_color_disabled=Y['muted'], width=112)
+                             text_color=Y['text'], text_color_disabled=Y['muted'], width=112)
 
     def refresh(self):
-        values = [DEMO] + ports()
+        found = ports()
+        self.radios = {text for text, radio in found if radio}
+        values = [DEMO] + [text for text, _ in found]
         self.choice.configure(values=values)
-        if self.choice.get() not in values:
-            self.choice.set(values[1] if len(values) > 1 else values[0])  # first USB serial device, else demo
+        current = self.choice.get()
+        if current not in values or (current == DEMO and self.radios and not self.chosen):
+            # pick a radio on our own (a RadioMaster, Jumper, ...), else any USB serial device, else the demo
+            self.choice.set(values[1] if len(values) > 1 else values[0])
+        self.radio_hint()
+
+    def radio_hint(self):
+        self.hint.configure(text='Radio found: ready to Start' if self.choice.get() in self.radios else '')
+
+    def picked(self, value):
+        self.chosen = True  # the user chose: stop picking for them
+        self.radio_hint()
+
+    def rescan(self):
+        """While stopped, watch for the radio being plugged in or out."""
+        if not self.service.running:
+            self.refresh()
+        self.root.after(2000, self.rescan)
 
     def selected_port(self):
         value = self.choice.get()
@@ -115,6 +203,29 @@ class Window:
         else:
             messagebox.showerror('Sticklink', f'Port {port} is used by another program ({exc}).\n\n'
                                  f'Close that program, or start Sticklink on another port:\nsticklink gui --http-port 47614')
+
+    def install_script(self):
+        cards = radio_install.find_cards()
+        if len(cards) == 1 and messagebox.askyesno('Sticklink', f'Found the radio SD card at {cards[0]}.\n\nInstall the Sticklink script (DDSTK.lua) on it?'):
+            chosen = cards[0]
+        elif len(cards) == 1:
+            return
+        else:
+            hint = ('Plug the radio in with USB, choose "USB Storage" on its popup, then choose the SD card here.' if not cards else
+                    'Several radio cards found. Choose the one to use.')
+            messagebox.showinfo('Sticklink', hint)
+            chosen = filedialog.askdirectory(title='Choose the radio SD card', initialdir=str(cards[0].parent) if cards else None)
+            if not chosen:
+                return
+        try:
+            dest = radio_install.install(chosen)
+        except OSError as exc:
+            messagebox.showerror('Sticklink', f'Could not install the script:\n{exc}')
+            return
+        messagebox.showinfo('Sticklink', f'Installed {dest}.\n\nEject the card, then on the radio:\n'
+                            '1. SYS > Hardware: set USB-VCP to LUA\n'
+                            '2. MDL > Special Functions: ON, Lua Script, DDSTK\n'
+                            '3. Restart the radio, plug it in and choose "USB Serial (VCP)".')
 
     def add_theme(self):
         source = filedialog.askopenfilename(title='Choose a theme (.zip or .json)', filetypes=[('Theme', '*.zip *.json'), ('All files', '*')])

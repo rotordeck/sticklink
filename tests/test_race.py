@@ -110,5 +110,60 @@ class RaceThroughStateTests(unittest.TestCase):
         self.assertEqual(s.race.snapshot()['state'], 'idle')
 
 
+class MappedSwitchTests(unittest.TestCase):
+    """The timer follows the arm / flip switches chosen on /setup, not the radio's default channels 5 and 8."""
+
+    def rig(self, mapping):
+        s = RadioState(Config())
+        s.mapping = lambda: mapping
+        s.connection(True)
+        self.seq = 0
+        return s
+
+    def line(self, s, text):
+        self.seq += 1
+        kind, tick, *rest = text.split(',')
+        s.ingest(parse_line(f'{kind},{tick},{self.seq},{",".join(rest)}'))
+
+    def aux(self, s, tick, ch9):
+        self.line(s, f'C,{tick},9,{ch9},0,0,0,0,0,0,0')
+        self.line(s, f'C,{tick},1,0,0,0,0,0,0,0,0')
+
+    def test_arm_on_the_crash_input_and_flip_on_a_mixer_channel(self):
+        s = self.rig(dict(arm=dict(src='in:crash', thr=0, dir=1), flip=dict(src='ch:9', thr=0, dir=1)))
+        # arm switch (the radio's ch8) on; the default arm input (ch5) stays off and must not matter
+        self.line(s, 'S,100,0,0,0,-1024,-1024,1024')
+        self.aux(s, 101, -1024)
+        self.aux(s, 110, 1024); self.aux(s, 115, -1024)   # a 50 ms tap on ch9 starts
+        self.assertEqual(s.snapshot(1.0)['race']['state'], 'running')
+        self.aux(s, 300, 1024); self.aux(s, 305, -1024)
+        self.assertEqual(s.snapshot(1.0)['race']['laps'], [1900])
+
+    def test_taps_do_nothing_while_the_mapped_arm_switch_is_off(self):
+        s = self.rig(dict(arm=dict(src='in:crash', thr=0, dir=1), flip=dict(src='ch:9', thr=0, dir=1)))
+        self.line(s, 'S,100,0,0,0,-1024,-1024,-1024')
+        self.aux(s, 101, -1024); self.aux(s, 110, 1024); self.aux(s, 115, -1024)
+        self.assertEqual(s.snapshot(1.0)['race']['state'], 'idle')
+
+    def test_arming_is_not_mistaken_for_a_tap(self):
+        s = self.rig(dict(arm=dict(src='in:crash', thr=0, dir=1), flip=dict(src='ch:9', thr=0, dir=1)))
+        self.line(s, 'S,100,0,0,0,-1024,-1024,-1024')
+        self.aux(s, 101, -1024)
+        self.line(s, 'S,110,0,0,0,-1024,-1024,1024')   # the pilot arms: the default flip input (ch8) goes high
+        self.assertEqual(s.snapshot(1.0)['race']['state'], 'idle')
+
+    def test_unmapped_flip_falls_back_to_the_default_input_and_no_arm_switch_means_no_gate(self):
+        s = self.rig(dict(arm=None, flip=None))
+        self.line(s, 'S,100,0,0,0,-1024,-1024,-1024')
+        self.line(s, 'S,110,0,0,0,-1024,-1024,1024')
+        self.assertEqual(s.snapshot(1.0)['race']['state'], 'running')
+
+    def test_a_flip_channel_that_has_not_arrived_yet_is_not_a_press(self):
+        s = self.rig(dict(arm=dict(src='in:arm', thr=0, dir=1), flip=dict(src='ch:9', thr=0, dir=1)))
+        self.line(s, 'S,100,0,0,0,-1024,1024,-1024')
+        self.aux(s, 110, 1024)   # first time we see ch9 it is already on: held since before, no press
+        self.assertEqual(s.snapshot(1.0)['race']['state'], 'idle')
+
+
 if __name__ == '__main__':
     unittest.main()

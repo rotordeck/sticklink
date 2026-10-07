@@ -20,6 +20,7 @@ class OverlayServer:
     def __init__(self, pipeline, source, hz=30, fx_config=None, recorder=None, scene_store=None, theme_store=None):
         self.pipeline, self.source, self.hz = pipeline, source, hz
         self.fx_config = fx_config or FxConfigStore()
+        pipeline.state.mapping = self.fx_config.current_mapping  # the race timer follows the arm / flip switches chosen on /setup
         self.recorder = recorder or Recorder(pipeline, source=source.label)
         self.scene_store = scene_store or SceneStore()
         self.themes = theme_store or ThemeStore()

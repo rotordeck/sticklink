@@ -99,16 +99,38 @@ local function note(text)
 end
 
 -- C,tick,seq,first,v1..v8: channels first..first+7 (first = 1 or 9). Short lines, like S.
-local function sendOutputs(now)
-  outHalf = 1 - outHalf
-  local first = outHalf * 8 + 1
+local sentOut = {} -- last value sent for each channel, to notice a switch flipping between the periodic sends
+
+local function sendHalf(now, half)
+  local first = half * 8 + 1
   local line = "C,"..now..","..nextSeq()..","..first
   for i = 1, 8 do
     local id = outputs[first + i - 1]
     local v = id and read(id)
-    line = line..","..(type(v) == "number" and math.floor(v) or 0)
+    local n = type(v) == "number" and math.floor(v) or 0
+    sentOut[first + i - 1] = n
+    line = line..","..n
   end
   send(line)
+end
+
+local function sendOutputs(now)
+  outHalf = 1 - outHalf
+  sendHalf(now, outHalf)
+end
+
+-- A tap on a switch is over in 100 ms, but each half of the channels only goes out every 200 ms: send the half
+-- at once when an AUX channel (5..16) moved a long way since it was last sent. Costs a read of 12 channels.
+local function watchSwitches(now)
+  local flush = { false, false }
+  for i = 5, 16 do
+    local id = outputs[i]
+    local v = id and read(id)
+    if type(v) == "number" and sentOut[i] and math.abs(v - sentOut[i]) >= 500 then flush[i <= 8 and 1 or 2] = true end
+  end
+  for half = 0, 1 do
+    if flush[half + 1] then sendHalf(now, half) end
+  end
 end
 
 -- Fixed-precision number text (shorter than the default 14 digits); falls back to plain concatenation.
@@ -174,6 +196,10 @@ local function run()
       if lastArm ~= nil and arm ~= lastArm then event(now,"ARM",arm) end
       if lastCrash ~= nil and crash ~= lastCrash then event(now,"CRASH",crash) end
       lastArm, lastCrash = arm, crash
+    end
+    if outputsOk then
+      local ok, err = pcall(watchSwitches, now)
+      if not ok then outputsOk = false; pcall(note, "send "..tostring(err)) end
     end
   end
   if outputsOk and (now - lastOutputs >= OUTPUT_TICKS or now < lastOutputs) then

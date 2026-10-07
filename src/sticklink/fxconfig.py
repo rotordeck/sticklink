@@ -1,5 +1,6 @@
 """Overlay settings shared by every open overlay page (OBS, browser), stored as JSON."""
 import json
+import time
 import os
 import re
 from pathlib import Path
@@ -195,6 +196,7 @@ def _complete_mapping(mapping):
 class FxConfigStore:
     def __init__(self, path=None):
         self.path = Path(path) if path else default_path()
+        self._mapping, self._mapping_at = None, 0.0
 
     def load(self):
         """Saved settings only (possibly partial)."""
@@ -202,6 +204,13 @@ class FxConfigStore:
             return validate(json.loads(self.path.read_text(encoding='utf-8')))
         except (OSError, ValueError):
             return {}
+
+    def current_mapping(self):
+        """The saved mapping over the defaults, re-read at most twice a second (the bridge asks for it on every sample)."""
+        now = time.monotonic()
+        if self._mapping is None or now - self._mapping_at > 0.5:
+            self._mapping, self._mapping_at = self.merged()['mapping'], now
+        return self._mapping
 
     def merged(self):
         """Complete settings: saved values over the defaults."""

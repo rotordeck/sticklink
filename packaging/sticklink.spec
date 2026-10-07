@@ -11,5 +11,7 @@ import sys
 
 a = Analysis([os.path.join(SPECPATH, 'entry.py')], pathex=[], datas=datas, hiddenimports=hiddenimports, excludes=['unittest.mock'])
 pyz = PYZ(a.pure)
-exe = EXE(pyz, a.scripts, a.binaries, a.datas, [], name='sticklink', console=True, upx=False,
+# The Rotordeck mark: .ico for the Windows exe, .icns for macOS (Linux ELF files carry no icon).
+icon = os.path.join(SPECPATH, {'win32': 'icon.ico', 'darwin': 'icon.icns'}.get(sys.platform, 'icon.png'))
+exe = EXE(pyz, a.scripts, a.binaries, a.datas, [], name='sticklink', console=True, upx=False, icon=icon,
           strip=sys.platform.startswith('linux'))  # the CI Linux Python ships an unstripped 30 MB libpython

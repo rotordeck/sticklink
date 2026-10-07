@@ -26,7 +26,7 @@ def running_sticklink(port):
         return None
 
 
-def describe_status(snap):
+def describe_status(snap, port=None):
     """(level, text) for a pipeline snapshot: level is 'wait', 'ok'."""
     state = snap['status']
     if state == 'demo':
@@ -35,7 +35,23 @@ def describe_status(snap):
         return 'ok', 'Radio connected: sticks are live'
     if state == 'paused':
         return 'wait', 'Radio connected, but no data. Is the DDSTK script running? (see Radio setup)'
-    return 'wait', 'Waiting for the radio' + (f' ({snap["error"]})' if snap.get('error') else '')
+    problem = radio_problem(snap.get('error'), port)
+    return 'wait', 'Waiting for the radio' + (f': {problem}' if problem else '')
+
+
+def radio_problem(error, port):
+    """A serial error from the OS, said the way a pilot can act on it. The raw text is kept for anything unrecognised."""
+    low = (error or '').lower()
+    name = port or 'the radio'
+    if 'no such file' in low or 'could not open port' in low and 'errno 2' in low or 'device disconnected' in low or 'device not configured' in low:
+        return f'{name} is not connected. Plug the radio in with USB (choose "USB Serial (VCP)" on its popup); Sticklink keeps looking.'
+    if 'permission' in low or 'errno 13' in low:
+        return f'No permission to use {name}. Linux: add yourself to the dialout (or uucp) group and log in again.'
+    if 'busy' in low or 'in use' in low or 'access is denied' in low or 'errno 16' in low:
+        return f'{name} is used by another program (EdgeTX Companion, a configurator or a second Sticklink). Close it.'
+    if 'input/output' in low or 'could not configure' in low or 'errno 5' in low:
+        return f'The radio on {name} is not answering. Unplug it, plug it in again and pick "USB Serial (VCP)".'
+    return error
 
 
 class Service:
@@ -49,6 +65,7 @@ class Service:
         self._thread = None
         self._loop = None
         self._stop = None
+        self.port = None
 
     @property
     def running(self):
@@ -61,6 +78,7 @@ class Service:
         if self.running:
             return
         demo = port is None
+        self.port = port
         self.pipeline = Pipeline(Config(input_label='sticks', demo=demo))
         source = DemoSource() if demo else SerialSource(port, baud)
         started = threading.Event()
@@ -97,4 +115,4 @@ class Service:
         """(level, text): level is 'off', 'wait', 'ok' or 'bad'."""
         if not self.running:
             return 'off', 'Stopped'
-        return describe_status(self.pipeline.snapshot())
+        return describe_status(self.pipeline.snapshot(), self.port)

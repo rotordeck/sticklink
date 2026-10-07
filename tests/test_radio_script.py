@@ -28,6 +28,7 @@ local function nameOf(id) for n, i in pairs(ids) do if i == id then return n end
 function getSourceValue(id)
   local n = nameOf(id)
   if mode == "sensor-boom" and n == "Curr" then error("simulated sensor failure") end
+  if mode == "tap" and id == 30 then return (t >= 1010 and t < 1020) and 1024 or -1024, true, true end  -- ch9: a 100 ms tap
   if n == "Bat%" then return 87, true, true end
   if n == "RxBt" then return 16.0999999046325, true, true end
   if n == "Alt" then return 35.2000007629395, true, false end
@@ -81,6 +82,13 @@ class RadioScriptTests(unittest.TestCase):
         note = next(r['message'] for r in records if r['type'] == 'D')
         self.assertIn('channels resolved 16', note)
         self.assertIn('gps', note)
+
+    def test_a_quick_tap_on_an_aux_channel_is_sent_at_once(self):
+        records, kinds, _ = self.run_mode('tap')
+        ch9 = [(r['tick'], r['outputs'][0]) for r in records if r['type'] == 'C' and r['first'] == 9]
+        self.assertTrue(any(1010 <= tick < 1020 and value == 1024 for tick, value in ch9), 'the tap itself')
+        self.assertTrue(any(tick >= 1020 and value == -1024 for tick, value in ch9), 'and its release')
+        self.assertLessEqual(kinds['C'], 205, 'only a few extra lines for one tap')
 
     def test_one_failing_sensor_does_not_stop_the_rest(self):
         records, kinds, _ = self.run_mode('sensor-boom')

@@ -97,8 +97,9 @@ page, so refreshing the page (or the OBS source) resets it.
 
 ### Race timer
 
-`/hud/race` (and the **race** block on `/hud`) is a lap timer driven by the crash-flip switch (the radio's default channel 8, `--crash-threshold`).
-It only reacts while the quad is **armed**.
+`/hud/race` (and the **race** block on `/hud`) is a lap timer driven by the **flip** switch and gated by the **arm** switch, as chosen on `/setup`
+(without a mapping: the radio's default channels 8 and 5, `--crash-threshold`, `--arm-threshold`). It only reacts while the quad is **armed**;
+if you have no arm switch mapped it always reacts.
 
 - A tap starts the race. Every further tap closes a lap: the lap time pops up big for a moment and the next lap starts. The big number is the current lap.
 - Under it come the last laps, newest first. **Laps shown under the race timer** (0 to 10) is in the settings panel (double-click the page).
@@ -107,7 +108,8 @@ It only reacts while the quad is **armed**.
 - `POST /api/v1/race/reset` clears it; the timer state is in `race` of `GET /api/v1/state`.
 
 The times come from the radio's clock (10 ms ticks) and the radio sends the switch about every 50 ms, so expect an accuracy of about 50 ms, not 1 ms.
-The timer follows the radio's `crash` input, not the **flip** switch you map on `/setup`.
+Taps on a mixer channel (`ch:9` and so on) need the current `DDSTK.lua` on the radio: it reports a switch the moment it moves.
+Older copies only sent those channels every 200 ms, which can miss a quick tap. Use **Radio script...** in the window to update it.
 
 ### The map
 

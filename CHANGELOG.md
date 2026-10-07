@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Race timer: tap the crash-flip switch while armed to start a timer, tap again for each lap, double-tap to stop. Big timer with the last laps under it (`/hud/race`, also a block on `/hud`; how many laps are shown is a setting). The timing runs in the bridge on the radio's clock, so it survives OBS reloading the source. `race` in `GET /api/v1/state`, `POST /api/v1/race/reset`, `--race-double-tap-ms`. See `docs/overlay-guide.md`.
+- Race timer follows the arm and flip switches chosen on `/setup`, and `DDSTK.lua` now reports a switch on an AUX channel immediately (it used to miss quick taps on channels 9 to 16). Update the script on the radio: **Radio script...** in the window.
 - The window (`sticklink gui`) has a new look that matches OBS (customtkinter, Yami colours), and `--http-port`. The default port is now 47613 (was 8765).
 - Starting while another Sticklink already runs on the port now says so (and offers its web portal) instead of showing a raw error.
 - Ctrl-C in the terminal closes the window.

@@ -67,6 +67,68 @@ class ServiceTests(unittest.TestCase):
             svc.stop()
 
 
+class RadioProblemTests(unittest.TestCase):
+    def test_os_errors_become_advice(self):
+        from sticklink.service import radio_problem
+        for raw, word in (("[Errno 2] could not open port /dev/ttyACM0: [Errno 2] No such file or directory: '/dev/ttyACM0'", 'not connected'),
+                          ("could not open port /dev/ttyACM0: [Errno 13] Permission denied", 'dialout'),
+                          ("[Errno 16] Device or resource busy", 'another program'),
+                          ("Could not configure port: (5, 'Input/output error')", 'not answering')):
+            with self.subTest(raw=raw):
+                text = radio_problem(raw, '/dev/ttyACM0')
+                self.assertIn(word, text)
+                self.assertNotIn('Errno', text)
+        self.assertEqual(radio_problem('something new', None), 'something new')
+        self.assertIsNone(radio_problem(None, None))
+
+
+class RadioInstallTests(unittest.TestCase):
+    def card(self, root, **names):
+        for name in ('RADIO', 'MODELS'):
+            (root/name).mkdir()
+        return root
+
+    def test_finds_only_radio_cards(self):
+        from sticklink import radio_install
+        tmp = Path(tempfile.mkdtemp())
+        card, other = self.card(tmp/'a' if (tmp/'a').mkdir() is None else tmp), tmp/'b'
+        other.mkdir()
+        (tmp/'c').mkdir(); (tmp/'c'/'radio').mkdir(); (tmp/'c'/'Models').mkdir()  # FAT cards vary in case
+        self.assertEqual(sorted(radio_install.find_cards([card, other, tmp/'c', tmp/'missing'])), sorted([card, tmp/'c']))
+
+    def test_installs_into_scripts_functions_from_any_starting_point(self):
+        from sticklink import radio_install
+        for start in ('', 'SCRIPTS', 'SCRIPTS/FUNCTIONS'):
+            tmp = Path(tempfile.mkdtemp())
+            self.card(tmp)
+            (tmp/start).mkdir(parents=True, exist_ok=True)
+            dest = radio_install.install(tmp/start if start else tmp)
+            self.assertEqual(dest, tmp/'SCRIPTS'/'FUNCTIONS'/'DDSTK.lua')
+            self.assertEqual(dest.read_bytes(), radio_install.SCRIPT.read_bytes())
+        (tmp/'SCRIPTS'/'FUNCTIONS'/'DDSTK.lua').write_text('old')
+        self.assertGreater(len(radio_install.install(tmp).read_bytes()), 100)  # replaces an older copy
+
+    def test_reuses_the_existing_folder_case_and_rejects_a_missing_one(self):
+        from sticklink import radio_install
+        tmp = Path(tempfile.mkdtemp())
+        (tmp/'Scripts'/'Functions').mkdir(parents=True)
+        self.assertEqual(radio_install.install(tmp), tmp/'Scripts'/'Functions'/'DDSTK.lua')
+        with self.assertRaises(OSError):
+            radio_install.install(tmp/'nope')
+
+
+class RadioPickerTests(unittest.TestCase):
+    def test_radios_are_recognised_by_name_or_usb_id(self):
+        from types import SimpleNamespace as P
+        from sticklink.gui import looks_like_radio
+        make = lambda d, vid=None, m=None, p=None: P(description=d, vid=vid, manufacturer=m, product=p)
+        self.assertTrue(looks_like_radio(make('RadioMaster Pocket Joystick')))
+        self.assertTrue(looks_like_radio(make('n/a', vid=0x1209)))
+        self.assertTrue(looks_like_radio(make('USB Serial', m='Jumper')))
+        self.assertTrue(looks_like_radio(make('FrSky Taranis')))
+        self.assertFalse(looks_like_radio(make('CP2102 USB to UART Bridge', vid=0x10c4)))
+
+
 @unittest.skipUnless(os.environ.get('DISPLAY') or os.name == 'nt', 'needs a display')
 class WindowTests(unittest.TestCase):
     def test_window_starts_and_stops_the_service(self):

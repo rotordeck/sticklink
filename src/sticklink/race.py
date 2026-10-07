@@ -28,12 +28,14 @@ class RaceTimer:
         self.version += 1
 
     def feed(self, tick, armed, pressed):
-        """One control sample: radio tick (10 ms units), whether the quad is armed, whether the switch is on."""
+        """One reading: radio tick (10 ms units), whether the quad is armed, whether the switch is on (None = not known yet)."""
         now = tick * TICK_MS
+        if self.now_ms is not None and now < self.now_ms:
+            now = self.now_ms  # records of different kinds can arrive slightly out of order: time never runs backwards
         self.now_ms = now
-        pressed = bool(pressed)
-        edge = pressed and self._pressed is False
-        self._pressed = pressed
+        edge = pressed is True and self._pressed is False
+        if pressed is not None:  # None: the switch's value is not known yet
+            self._pressed = pressed
         if not armed:
             if self.state == 'running':  # disarming ends the race at the last closed lap
                 if self.laps:

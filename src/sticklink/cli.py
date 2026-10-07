@@ -165,7 +165,7 @@ def main(argv=None):
         async def watch():
             last = None
             while True:
-                text = describe_status(pipeline.snapshot())[1]
+                text = describe_status(pipeline.snapshot(), getattr(args, 'port', None))[1]
                 if text != last:
                     print(f'Status: {text}', flush=True)
                     last = text
