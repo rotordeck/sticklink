@@ -7,6 +7,8 @@ name = "sticklink"
 dynamic = ["version"]
 description = "Live stick and telemetry overlays for OBS, from an EdgeTX radio (RadioMaster Pocket)"
 readme = "README.md"
+license = "AGPL-3.0-or-later"
+license-files = ["LICENSE"]
 requires-python = ">=3.10"
 dependencies = ["aiohttp>=3.10,<4", "pyserial>=3.5,<4", "customtkinter>=5.2"]
 classifiers = [

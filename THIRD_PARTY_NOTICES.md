@@ -32,4 +32,4 @@ TypeScript, esbuild, Node.js test tooling, openapi-spec-validator, build.
 
 ## This project
 
-No licence has been chosen yet; until one is added, all rights are reserved by the authors.
+Sticklink is licensed under the GNU Affero General Public License v3.0 or later (see `LICENSE`). The bundled Apache-2.0 and OFL-1.1 components above are compatible with it and keep their own licences.

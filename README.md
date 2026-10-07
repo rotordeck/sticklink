@@ -112,5 +112,6 @@ More in [docs/cli.md](https://github.com/rotordeck/sticklink/blob/main/docs/cli.
 
 ## Licence
 
-No licence has been chosen yet, so all rights are reserved. Third-party components are listed in
+Sticklink is free software under the **GNU Affero General Public License v3.0 or later** (AGPL-3.0-or-later); see [LICENSE](LICENSE).
+If you modify it and let others use it, including over a network, you must offer them your source under the same licence. Third-party components are listed in
 [THIRD_PARTY_NOTICES.md](https://github.com/rotordeck/sticklink/blob/main/THIRD_PARTY_NOTICES.md).
