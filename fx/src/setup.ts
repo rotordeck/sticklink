@@ -48,7 +48,7 @@ function save() {
 
 function build() {
   document.body.append(h(`<main>
-    <header><h1>STICKLINK · SETUP</h1><span id="conn">CONNECTING</span><span id="saved"></span></header>
+    <header><h1><img src="/assets/icon.svg" alt="">Sticklink <small>Setup</small></h1><span id="conn">CONNECTING</span><span id="saved"></span></header>
     <div id="banner" hidden></div>
     <section class="cols">
       <div class="col"><canvas id="drone" width="380" height="280"></canvas>

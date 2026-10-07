@@ -11,7 +11,7 @@ const rot = ([x, y, z]: V, roll: number, pitch: number, yaw: number): V => {
   return [x, y, z];
 };
 
-export function drawDrone(ctx: CanvasRenderingContext2D, w: number, h: number, p: Pose, accent = '#50e0c1') {
+export function drawDrone(ctx: CanvasRenderingContext2D, w: number, h: number, p: Pose, accent = '#C3F45C') {
   ctx.clearRect(0, 0, w, h);
   const tilt = 0.6, lift = (p.thr - 0.5) * 0.9;
   const cam = 0.42; // camera looks down at the quad from behind

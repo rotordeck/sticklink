@@ -37,12 +37,12 @@ export class FpvStick extends HTMLElement {
     this.shadowRoot.innerHTML = `
       <style>
         :host{display:block;width:238px}svg{display:block;width:100%;overflow:visible}
-        .base{fill:#0b1420;fill-opacity:.83;stroke:#788b9e;stroke-width:1.2}
+        .base{fill:#141611;fill-opacity:.83;stroke:#A0A496;stroke-width:1.2}
         .grid{stroke:#b7c9db;stroke-opacity:.22;stroke-width:1}
         .ring{fill:none;stroke:#b7c9db;stroke-opacity:.12}
-        .trail{fill:none;stroke:var(--accent,#50e0c1);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;opacity:.45}
-        .dot{fill:var(--accent,#50e0c1);stroke:#fff;stroke-width:2}
-        text{fill:#dce9f6;font:11px Arial,sans-serif;text-anchor:middle;letter-spacing:1.3px}
+        .trail{fill:none;stroke:var(--accent,#C3F45C);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;opacity:.45}
+        .dot{fill:var(--accent,#C3F45C);stroke:#fff;stroke-width:2}
+        text{fill:#F1F2E9;font:11px Arial,sans-serif;text-anchor:middle;letter-spacing:1.3px}
         .values{font-size:10px;letter-spacing:0;fill:#a3b3c3}
         :host([stale]) .dot,:host([stale]) .trail{display:none}
       </style>
@@ -81,7 +81,7 @@ export class FpvCommand extends HTMLElement {
   constructor() {
     super(); this.attachShadow({mode:'open'});
     this.shadowRoot.innerHTML = `<style>
-      :host{display:inline-flex;border:1px solid #556575;border-radius:6px;padding:7px 10px;font:10px Arial,sans-serif;letter-spacing:.8px;color:#adbac8;background:#0b1420cc}
+      :host{display:inline-flex;border:1px solid #35392E;border-radius:6px;padding:7px 10px;font:10px Arial,sans-serif;letter-spacing:.8px;color:#A0A496;background:#141611cc}
       :host([on]){color:#ffb875;border-color:#d98441;background:#33200fd9}
       :host([unknown]){opacity:.4}
     </style><span></span>`;
@@ -106,11 +106,11 @@ export class DroneStickOverlay extends HTMLElement {
   constructor() {
     super(); this.attachShadow({mode:'open'});
     this.shadowRoot.innerHTML = `<style>
-      :host{display:block;--accent:#50e0c1}
+      :host{display:block;--accent:#C3F45C}
       .wrap{box-sizing:border-box;width:560px;padding:16px 16px 12px;border-radius:22px;background:linear-gradient(145deg,#111d2aec,#09111cd9);border:1px solid #7d94ac44;box-shadow:0 4px 24px #0003}
       .head,.footer,.telemetry{display:flex;align-items:center;justify-content:space-between;gap:10px}
       .brand{font-size:13px;font-weight:700;letter-spacing:2px}
-      .meta{font-size:10px;letter-spacing:1px;color:#9aafc1}.status{font-size:10px;letter-spacing:1px;color:var(--accent)}
+      .meta{font-size:10px;letter-spacing:1px;color:#A0A496}.status{font-size:10px;letter-spacing:1px;color:var(--accent)}
       .sticks{display:flex;justify-content:space-between;margin-top:12px}
       .footer{margin-top:14px}.commands{display:flex;gap:7px}
       .telemetry{font-size:11px;color:#b4c4d3;justify-content:flex-end}.muted{opacity:.38}

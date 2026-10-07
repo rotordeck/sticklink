@@ -86,7 +86,7 @@ class Service:
 
         async def main():
             self._loop, self._stop = asyncio.get_running_loop(), asyncio.Event()
-            runner = web.AppRunner(OverlayServer(self.pipeline, source, **self.server_options).app())
+            runner = web.AppRunner(OverlayServer(self.pipeline, source, **self.server_options).app(), shutdown_timeout=1)
             try:
                 await runner.setup()
                 await web.TCPSite(runner, HOST, self.http_port).start()

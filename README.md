@@ -15,6 +15,9 @@ overlays, and records every session so you can check and reuse the data later.
   <img src="https://raw.githubusercontent.com/rotordeck/sticklink/main/docs/img/hud-corners-hacker.png" width="49%" alt="Telemetry HUD, hacker">
 </p>
 
+> **Join the community:** [join the Rotordeck closed Android beta](https://rotordeck.com/) and
+> [join the Discord](https://discord.gg/DGqzmknWj) for help, questions and updates.
+
 ## What you get
 
 - **Effects overlay** (`/fx`): eight styles (Clean, Minimal, Neon, Arcade, Synthwave, Inferno, Unicorn, Hacker) with glowing
@@ -109,6 +112,12 @@ More in [docs/cli.md](https://github.com/rotordeck/sticklink/blob/main/docs/cli.
   timers, arm/disarm. Flips, rolls and crash detection in stickcam need gyro and accelerometer data that the radio does not have.
 - Sticklink only **reads** from the radio. It never writes to it and never changes ExpressLRS or model settings.
 - Unsigned downloads: macOS Gatekeeper and Windows SmartScreen will warn once ([getting started](https://github.com/rotordeck/sticklink/blob/main/docs/getting-started.md)).
+
+## Community
+
+- **Closed Android beta**: [join the Rotordeck beta](https://rotordeck.com/).
+- **Discord**: [join the server](https://discord.gg/DGqzmknWj) for help, questions and to stay informed about new releases.
+- **Bugs and feature requests**: [GitHub issues](https://github.com/rotordeck/sticklink/issues).
 
 ## Licence
 

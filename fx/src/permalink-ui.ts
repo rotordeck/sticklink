@@ -3,7 +3,7 @@
 
 export const LINK_CSS = `
   .linkrow{display:flex;gap:6px;align-items:center;margin-top:4px}
-  .linkrow input{flex:1;min-width:0;max-width:none;width:auto;background:#16273a;color:#cfe3f5;border:1px solid #4a6078;border-radius:4px;padding:3px 5px;font:11px monospace}
+  .linkrow input{flex:1;min-width:0;max-width:none;width:auto;background:#272B21;color:#F1F2E9;border:1px solid #35392E;border-radius:4px;padding:3px 5px;font:11px monospace}
   .linkrow button{margin-top:0;white-space:nowrap}`;
 
 export const LINK_HTML = `

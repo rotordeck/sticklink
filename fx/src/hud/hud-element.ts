@@ -50,13 +50,13 @@ export class StickHud extends HTMLElement {
     root.innerHTML = `<style>
       :host{display:block;position:fixed;inset:0}canvas{display:block}
       .panel{position:fixed;inset:8px auto auto 8px;max-width:min(360px,calc(100vw - 16px));max-height:calc(100vh - 16px);overflow:auto;box-sizing:border-box;
-        padding:12px 14px;border-radius:10px;background:#0b1420f2;border:1px solid #7d94ac66;color:#e6eef7;font:12px/1.4 Arial,sans-serif;z-index:10}
-      .panel[hidden]{display:none}h3{margin:0 0 8px;font-size:13px;letter-spacing:1px}h4{margin:12px 0 4px;font-size:11px;letter-spacing:1px;color:#9fb2c4}
+        padding:12px 14px;border-radius:4px;background:#141611f2;border:1px solid #35392E;color:#F1F2E9;font:12px/1.4 Arial,sans-serif;z-index:10}
+      .panel[hidden]{display:none}h3{margin:0 0 8px;font-size:13px;letter-spacing:1px}h4{margin:12px 0 4px;font-size:11px;letter-spacing:1px;color:#A0A496}
       label{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:5px 0}
-      select,input[type=number],input[type=text]{background:#16273a;color:inherit;border:1px solid #4a6078;border-radius:4px;padding:3px 5px;font:inherit;max-width:62%}
+      select,input[type=number],input[type=text]{background:#272B21;color:inherit;border:1px solid #35392E;border-radius:4px;padding:3px 5px;font:inherit;max-width:62%}
       input[type=text]{width:62%}.row{display:flex;gap:10px;flex-wrap:wrap}.row label{margin:2px 0;gap:4px}
-      .hint{color:#9fb2c4;font-size:11px;margin-top:8px}.status{color:#50e0c1}a{color:#50e0c1}
-      button{margin-top:8px;background:#16273a;color:inherit;border:1px solid #4a6078;border-radius:4px;padding:4px 10px;font:inherit;cursor:pointer}${LINK_CSS}
+      .hint{color:#A0A496;font-size:11px;margin-top:8px}.status{color:#C3F45C}a{color:#C3F45C}
+      button{margin-top:8px;background:#272B21;color:inherit;border:1px solid #35392E;border-radius:4px;padding:4px 10px;font:inherit;cursor:pointer}${LINK_CSS}
     </style>`;
     this.panel.className = 'panel'; this.panel.hidden = true;
     root.append(this.canvas, this.panel);

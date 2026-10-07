@@ -68,13 +68,17 @@ class OverlayServer:
             for task in tasks:
                 with suppress(asyncio.CancelledError):
                     await task
-            for client in tuple(self.clients):
-                await client.close()
             self.recorder.close()
+
+    async def close_clients(self, app):
+        # aiohttp waits for open handlers before it runs cleanup, so the sockets must be closed here
+        for client in tuple(self.clients):
+            await client.close()
 
     def app(self):
         app = web.Application(middlewares=[api.guard], client_max_size=64*1024)
         app.cleanup_ctx.append(self.lifecycle)
+        app.on_shutdown.append(self.close_clients)
         app.router.add_get('/ws', self.websocket)
 
         async def overlay(request):

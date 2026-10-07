@@ -1,0 +1,25 @@
+/* Rotordeck look shared by the Sticklink pages: same tokens as the desktop window (gui.py, dict Y). */
+:root{
+  color-scheme:dark;
+  --window:#141611;--base:#1D2019;--input:#272B21;--hover:#35392E;--border:#35392E;
+  --text:#F1F2E9;--muted:#A0A496;--primary:#C3F45C;--primary-hover:#D5FF83;--on-primary:#141611;
+  --wait:#E5AF24;--bad:#E33B57;--ok:#C3F45C;--radius:4px;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+body{margin:0;background:var(--window);color:var(--text);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+a{color:var(--primary)}a:hover{color:var(--primary-hover)}
+header{display:flex;gap:16px;align-items:center;flex-wrap:wrap;padding-bottom:14px;border-bottom:1px solid var(--border);margin-bottom:6px}
+header h1{display:flex;align-items:center;gap:10px;margin:0;font-size:20px;font-weight:700;letter-spacing:0}
+header h1 img{width:32px;height:32px;display:block}
+header h1 small{font:10px var(--mono);letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;align-self:flex-end;padding-bottom:3px}
+header nav{display:flex;gap:14px}
+.mono,h2,h4{font-family:var(--mono)}
+h2{font-size:10px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;font-weight:400}
+select,input[type=text],input[type=number],input[type=password],input:not([type]){background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:var(--radius);padding:4px 8px;font:inherit}
+select:focus,input:focus{outline:1px solid var(--primary);outline-offset:0}
+button,.btn{background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:var(--radius);padding:5px 12px;font:inherit;cursor:pointer}
+button:hover,.btn:hover{background:var(--hover);border-color:var(--muted)}
+button.primary,.btn.primary{background:var(--primary);color:var(--on-primary);border-color:var(--primary);font-weight:700}
+button.primary:hover,.btn.primary:hover{background:var(--primary-hover);border-color:var(--primary-hover)}
+.panel{background:var(--base);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px}
+.status-ok{color:var(--ok)}.status-wait{color:var(--wait)}.status-bad{color:var(--bad)}

@@ -219,7 +219,7 @@ function renderIfScenesChanged() { const key = JSON.stringify(obs?.scenes ?? [])
 // ------------------------------------------------------------------ boot
 function build() {
   document.body.append(Object.assign(el('main'), { innerHTML: `
-    <header><h1>STICKLINK · MODES</h1><nav><a href="/setup">Setup</a><a href="/hud">HUD</a><a href="/fx">Overlay</a><a href="/docs">API</a></nav><span id="status"></span></header>
+    <header><h1><img src="/assets/icon.svg" alt="">Sticklink <small>Modes</small></h1><nav><a href="/setup">Setup</a><a href="/hud">HUD</a><a href="/fx">Overlay</a><a href="/docs">API</a></nav><span id="status"></span></header>
     <section class="panel"><div class="obsline"><span id="dot" class="dot"></span><b id="obsText">OBS: …</b>
       <button class="btn small" id="toggleConn">Connection…</button><button class="btn small" id="refresh">Refresh scenes</button></div>
       <div id="conn" hidden>

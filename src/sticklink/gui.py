@@ -3,7 +3,7 @@ import os
 import sys
 import webbrowser
 import tkinter as tk
-from tkinter import filedialog, messagebox
+from tkinter import filedialog
 
 import customtkinter as ctk
 
@@ -88,6 +88,70 @@ def hide_console():
         pass
 
 
+class Dialog(ctk.CTkToplevel):
+    """A pop-up in the window's own style. `buttons` are (label, value) pairs, the first is the primary one; `show()` returns the value
+    of the clicked button (None if closed). With `spinner` it shows a spinning disk and calls `poll()` twice a second: a non-None
+    result closes the dialog with that value."""
+
+    def __init__(self, parent, message, buttons, spinner=False, poll=None):
+        super().__init__(parent, fg_color=Y['window'])
+        self.result, self.poll, self.angle = None, poll, 0
+        self.title('Sticklink')
+        self.resizable(False, False)
+        self.transient(parent)
+        body = ctk.CTkFrame(self, fg_color=Y['window'])
+        body.grid(padx=18, pady=18)
+        column = 0
+        if spinner:
+            self.disk = tk.Canvas(body, width=40, height=40, bg=Y['window'], highlightthickness=0)
+            self.disk.grid(row=0, column=0, padx=(0, 14))
+            column = 1
+            self.spin()
+        ctk.CTkLabel(body, text=message, text_color=Y['text'], wraplength=360, justify='left', anchor='w').grid(row=0, column=column, sticky='w')
+        row = ctk.CTkFrame(body, fg_color=Y['window'])
+        row.grid(row=1, column=0, columnspan=2, sticky='e', pady=(16, 0))
+        for i, (label, value) in enumerate(reversed(buttons)):
+            primary = i == len(buttons) - 1
+            ctk.CTkButton(row, text=label, width=96, corner_radius=4, command=lambda v=value: self.finish(v),
+                          fg_color=Y['primary'] if primary else Y['input'], hover_color=Y['primary_hover'] if primary else Y['hover'],
+                          text_color=Y['on_primary'] if primary else Y['text']).grid(row=0, column=i, padx=(4, 0))
+        self.protocol('WM_DELETE_WINDOW', lambda: self.finish(None))
+        self.bind('<Escape>', lambda _: self.finish(None))
+        self.update_idletasks()
+        x = parent.winfo_rootx() + (parent.winfo_width() - self.winfo_reqwidth()) // 2
+        y = parent.winfo_rooty() + (parent.winfo_height() - self.winfo_reqheight()) // 2
+        self.geometry(f'+{max(x, 0)}+{max(y, 0)}')
+        if poll:
+            self.after(500, self.check)
+
+    def spin(self):
+        self.disk.delete('all')
+        self.disk.create_oval(4, 4, 36, 36, outline=Y['border'], width=4)
+        self.disk.create_arc(4, 4, 36, 36, start=self.angle, extent=100, style='arc', outline=Y['primary'], width=4)
+        self.angle = (self.angle - 20) % 360
+        self.spin_job = self.after(50, self.spin)
+
+    def check(self):
+        found = self.poll()
+        if found is not None:
+            self.finish(found)
+        else:
+            self.after(500, self.check)
+
+    def finish(self, value):
+        self.result = value
+        if getattr(self, 'spin_job', None):
+            self.after_cancel(self.spin_job)
+        self.destroy()
+
+    def show(self):
+        self.wait_visibility()
+        self.grab_set()
+        self.focus_set()
+        self.wait_window()
+        return self.result
+
+
 class Window:
     def __init__(self, root, service):
         self.root, self.service = root, service
@@ -155,6 +219,15 @@ class Window:
         return ctk.CTkButton(parent, text=text, command=command, corner_radius=4, fg_color=Y['input'], hover_color=Y['hover'],
                              text_color=Y['text'], text_color_disabled=Y['muted'], width=112)
 
+    def info(self, message):
+        Dialog(self.root, message, [('OK', True)]).show()
+
+    def error(self, message):
+        Dialog(self.root, message, [('OK', True)]).show()
+
+    def ask(self, message, yes='Yes', no='No'):
+        return bool(Dialog(self.root, message, [(yes, True), (no, False)]).show())
+
     def refresh(self):
         found = ports()
         self.radios = {text for text, radio in found if radio}
@@ -197,32 +270,40 @@ class Window:
         port = self.service.http_port
         other = running_sticklink(port)
         if other is not None:
-            if messagebox.askyesno('Sticklink', f'Sticklink {other} is already running on port {port} (another window or a terminal).\n\n'
+            if self.ask(f'Sticklink {other} is already running on port {port} (another window or a terminal).\n\n'
                                    'Only one can use the radio at a time, so close the other one to start this one.\n\nOpen the running one\'s web portal?'):
                 webbrowser.open(self.service.url('/'))
         else:
-            messagebox.showerror('Sticklink', f'Port {port} is used by another program ({exc}).\n\n'
+            self.error(f'Port {port} is used by another program ({exc}).\n\n'
                                  f'Close that program, or start Sticklink on another port:\nsticklink gui --http-port 47614')
 
     def install_script(self):
         cards = radio_install.find_cards()
-        if len(cards) == 1 and messagebox.askyesno('Sticklink', f'Found the radio SD card at {cards[0]}.\n\nInstall the Sticklink script (DDSTK.lua) on it?'):
+        if not cards:
+            cards = Dialog(self.root, 'SD card / controller not available.\n\nPlease connect your controller and put it in USB storage mode.',
+                           [('Choose folder...', []), ('Cancel', None)], spinner=True, poll=lambda: radio_install.find_cards() or None).show()
+            if cards is None:
+                return
+            if not cards:
+                chosen = filedialog.askdirectory(title='Choose the radio SD card')
+                if not chosen:
+                    return
+                cards = [chosen]
+        if len(cards) == 1:
             chosen = cards[0]
-        elif len(cards) == 1:
-            return
+            if not self.ask(f'Found the radio SD card at {chosen}.\n\nInstall the Sticklink script (DDSTK.lua) on it?'):
+                return
         else:
-            hint = ('Plug the radio in with USB, choose "USB Storage" on its popup, then choose the SD card here.' if not cards else
-                    'Several radio cards found. Choose the one to use.')
-            messagebox.showinfo('Sticklink', hint)
-            chosen = filedialog.askdirectory(title='Choose the radio SD card', initialdir=str(cards[0].parent) if cards else None)
+            self.info('Several radio cards found. Choose the one to use.')
+            chosen = filedialog.askdirectory(title='Choose the radio SD card', initialdir=str(cards[0].parent))
             if not chosen:
                 return
         try:
             dest = radio_install.install(chosen)
         except OSError as exc:
-            messagebox.showerror('Sticklink', f'Could not install the script:\n{exc}')
+            self.error(f'Could not install the script:\n{exc}')
             return
-        messagebox.showinfo('Sticklink', f'Installed {dest}.\n\nEject the card, then on the radio:\n'
+        self.info(f'Installed {dest}.\n\nEject the card, then on the radio:\n'
                             '1. SYS > Hardware: set USB-VCP to LUA\n'
                             '2. MDL > Special Functions: ON, Lua Script, DDSTK\n'
                             '3. Restart the radio, plug it in and choose "USB Serial (VCP)".')
@@ -236,13 +317,13 @@ class Window:
             try:
                 name = store.install(source)
             except ThemeError as exc:
-                if 'already installed' not in str(exc) or not messagebox.askyesno('Sticklink', f'{exc}\n\nReplace it?'):
+                if 'already installed' not in str(exc) or not self.ask(f'{exc}\n\nReplace it?'):
                     raise
                 name = store.install(source, replace=True)
         except ThemeError as exc:
-            messagebox.showerror('Sticklink', f'Cannot install this theme:\n{exc}')
+            self.error(f'Cannot install this theme:\n{exc}')
             return
-        messagebox.showinfo('Sticklink', f'Installed "{name}". Pick it as the style in the overlay settings (double-click the overlay).')
+        self.info(f'Installed "{name}". Pick it as the style in the overlay settings (double-click the overlay).')
 
     def open_themes(self):
         store = (self.service.server_options.get('theme_store') or ThemeStore())

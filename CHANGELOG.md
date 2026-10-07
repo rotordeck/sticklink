@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.3 (2026-10-07)
+
+- The web pages (`/setup`, `/modes`, `/docs`, the overlay panels) now share the Rotordeck look of the window: olive-black and lime, logo in the header. Shared styles live in `web/brand.css`.
+- Stopping no longer hangs while a browser or OBS source is connected: the window closes at once instead of waiting up to 10 seconds.
+- `start.sh` in the source tree opens the window.
+
 ## 0.1.2 (2026-10-07)
 
 - Race timer: tap the crash-flip switch while armed to start a timer, tap again for each lap, double-tap to stop. Big timer with the last laps under it (`/hud/race`, also a block on `/hud`; how many laps are shown is a setting). The timing runs in the bridge on the radio's clock, so it survives OBS reloading the source. `race` in `GET /api/v1/state`, `POST /api/v1/race/reset`, `--race-double-tap-ms`. See `docs/overlay-guide.md`.

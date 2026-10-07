@@ -39,15 +39,15 @@ export class StickFx extends HTMLElement {
     root.innerHTML = `<style>
       :host{display:block;position:fixed;inset:0}canvas{display:block}
       .panel{position:fixed;inset:8px auto auto 8px;max-width:min(340px,calc(100vw - 16px));max-height:calc(100vh - 16px);overflow:auto;
-        box-sizing:border-box;padding:12px 14px;border-radius:10px;background:#0b1420f2;border:1px solid #7d94ac66;color:#e6eef7;
+        box-sizing:border-box;padding:12px 14px;border-radius:4px;background:#141611f2;border:1px solid #35392E;color:#F1F2E9;
         font:12px/1.4 Arial,sans-serif;z-index:10}
       .panel[hidden]{display:none}h3{margin:0 0 8px;font-size:13px;letter-spacing:1px}
       label{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:6px 0}
-      select,input[type=number]{background:#16273a;color:inherit;border:1px solid #4a6078;border-radius:4px;padding:3px 5px;font:inherit;max-width:60%}
+      select,input[type=number]{background:#272B21;color:inherit;border:1px solid #35392E;border-radius:4px;padding:3px 5px;font:inherit;max-width:60%}
       input[type=range]{width:55%}.row{display:flex;gap:10px;flex-wrap:wrap}.row label{margin:2px 0;gap:4px}
-      .blurb{color:#9fb2c4;font-size:11px;margin:-2px 0 6px}.hint{color:#9fb2c4;font-size:11px;margin-top:8px}
-      button{margin-top:8px;background:#16273a;color:inherit;border:1px solid #4a6078;border-radius:4px;padding:4px 10px;font:inherit;cursor:pointer}
-      .status{color:#50e0c1}a{color:#50e0c1}${LINK_CSS}
+      .blurb{color:#A0A496;font-size:11px;margin:-2px 0 6px}.hint{color:#A0A496;font-size:11px;margin-top:8px}
+      button{margin-top:8px;background:#272B21;color:inherit;border:1px solid #35392E;border-radius:4px;padding:4px 10px;font:inherit;cursor:pointer}
+      .status{color:#C3F45C}a{color:#C3F45C}${LINK_CSS}
       .badge{position:absolute;left:50%;top:6px;transform:translateX(-50%);padding:3px 12px;border-radius:6px;background:#ff3b3bd9;color:#fff;
         font:700 13px Arial,sans-serif;letter-spacing:2px;pointer-events:none}.badge[hidden]{display:none}
     </style>`;

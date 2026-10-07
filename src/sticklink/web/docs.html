@@ -4,11 +4,28 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Sticklink API</title>
-  <link rel="icon" href="/assets/swagger/favicon-32x32.png">
+  <link rel="icon" href="/assets/icon.svg">
   <link rel="stylesheet" href="/assets/swagger/swagger-ui.css">
-  <style>body{margin:0}.swagger-ui .topbar{display:none}</style>
+  <link rel="stylesheet" href="/assets/brand.css">
+  <style>
+    body{margin:0}.swagger-ui .topbar{display:none}
+    .brandbar{display:flex;align-items:center;gap:10px;padding:14px 20px;border-bottom:1px solid var(--border);font-size:20px;font-weight:700}
+    .brandbar img{width:32px;height:32px}.brandbar small{font:10px var(--mono);letter-spacing:1.5px;color:var(--muted);align-self:flex-end;padding-bottom:3px}
+    .swagger-ui,.swagger-ui .info .title,.swagger-ui .info p,.swagger-ui .info li,.swagger-ui .opblock-tag,.swagger-ui .opblock .opblock-summary-description,.swagger-ui .opblock-description-wrapper p,.swagger-ui table thead tr th,.swagger-ui .parameter__name,.swagger-ui .response-col_status,.swagger-ui label,.swagger-ui .tab li,.swagger-ui section.models h4,.swagger-ui .model,.swagger-ui .model-title,.swagger-ui .responses-inner h4,.swagger-ui .responses-inner h5,.swagger-ui .opblock-section-header h4,.swagger-ui .markdown p,.swagger-ui .renderedMarkdown p,.swagger-ui .parameter__type,.swagger-ui .prop-type{color:var(--text)}
+    .swagger-ui .scheme-container,.swagger-ui .opblock .opblock-section-header,.swagger-ui section.models,.swagger-ui section.models .model-container{background:var(--base);box-shadow:none}
+    .swagger-ui .opblock{background:var(--base);border-color:var(--border)}
+    .swagger-ui section.models,.swagger-ui .opblock .opblock-section-header,.swagger-ui table thead tr td,.swagger-ui table thead tr th{border-color:var(--border)}
+    .swagger-ui input[type=text],.swagger-ui textarea,.swagger-ui select{background:var(--input);color:var(--text);border:1px solid var(--border)}
+    .swagger-ui .btn{color:var(--text);border-color:var(--border);box-shadow:none}
+    .swagger-ui .btn.execute{background:var(--primary);border-color:var(--primary);color:var(--on-primary)}
+    .swagger-ui a.nostyle,.swagger-ui .info a{color:var(--primary)}
+    .swagger-ui .markdown code,.swagger-ui .renderedMarkdown code{color:var(--primary);background:var(--input);padding:1px 5px;border-radius:var(--radius)}
+    .swagger-ui .info .title small{background:var(--hover)}.swagger-ui .info .title small.version-stamp pre{color:var(--text)}.swagger-ui .info .title small pre{background:transparent}
+    .swagger-ui .opblock-body pre.microlight{background:var(--window)!important}
+  </style>
 </head>
 <body>
+  <div class="brandbar"><img src="/assets/icon.svg" alt="">Sticklink <small>API</small></div>
   <div id="swagger-ui"></div>
   <script src="/assets/swagger/swagger-ui-bundle.js"></script>
   <script src="/assets/swagger/init.js"></script>
