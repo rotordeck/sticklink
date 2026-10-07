@@ -1,12 +1,14 @@
 # Changelog
 
-## Unreleased
+## 0.1.2 (2026-10-07)
 
 - Race timer: tap the crash-flip switch while armed to start a timer, tap again for each lap, double-tap to stop. Big timer with the last laps under it (`/hud/race`, also a block on `/hud`; how many laps are shown is a setting). The timing runs in the bridge on the radio's clock, so it survives OBS reloading the source. `race` in `GET /api/v1/state`, `POST /api/v1/race/reset`, `--race-double-tap-ms`. See `docs/overlay-guide.md`.
 - Race timer follows the arm and flip switches chosen on `/setup`, and `DDSTK.lua` now reports a switch on an AUX channel immediately (it used to miss quick taps on channels 9 to 16). Update the script on the radio: **Radio script...** in the window.
 - The window (`sticklink gui`) has a new look that matches OBS (customtkinter, Yami colours), and `--http-port`. The default port is now 47613 (was 8765).
 - Starting while another Sticklink already runs on the port now says so (and offers its web portal) instead of showing a raw error.
 - Ctrl-C in the terminal closes the window.
+- The window uses the Rotordeck look (olive-black and lime, logo in the header) and the program has the Rotordeck icon. **Radio script...** in the window installs `DDSTK.lua` on the radio's SD card, and the radio is picked automatically when plugged in.
+- Licence: AGPL-3.0-or-later.
 
 - Themes: add your own looks to the stick overlay and the HUD with a data-only `.json` (or folder/zip with fonts). `sticklink theme install|list|remove|path`, an "Add theme" button in the window, `GET /api/v1/themes`. Gold Rush and Blueprint are included. See `docs/themes.md`.
 - The window no longer lists the built-in serial ports (`ttyS0`...) as radios.
