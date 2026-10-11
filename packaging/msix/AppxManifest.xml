@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Microsoft Store package. make_msix.py fills in {VERSION}; the identity must match Partner Center
+     (Product management > Product identity). The Store signs the package on certification. -->
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3"
+  xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  IgnorableNamespaces="uap uap3 desktop rescap">
+
+  <Identity Name="Rotordeck.Sticklink"
+            Publisher="CN=D93ACC49-1314-4D32-870F-A3EBE615C09F"
+            Version="{VERSION}"
+            ProcessorArchitecture="x64" />
+
+  <Properties>
+    <DisplayName>Sticklink</DisplayName>
+    <PublisherDisplayName>Rotordeck</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+    <Description>Live stick and telemetry overlays for OBS, from an EdgeTX radio.</Description>
+  </Properties>
+
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.26100.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="en-us" />
+  </Resources>
+
+  <Applications>
+    <Application Id="Sticklink" Executable="sticklink\sticklink.exe" EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements DisplayName="Sticklink"
+                          Description="Live stick and telemetry overlays for OBS, from an EdgeTX radio."
+                          BackgroundColor="transparent"
+                          Square150x150Logo="Assets\Square150x150Logo.png"
+                          Square44x44Logo="Assets\Square44x44Logo.png" />
+      <Extensions>
+        <!-- `sticklink run`, `sticklink radio-script E:\SCRIPTS\FUNCTIONS` etc. from a terminal -->
+        <uap3:Extension Category="windows.appExecutionAlias" Executable="sticklink\sticklink.exe" EntryPoint="Windows.FullTrustApplication">
+          <uap3:AppExecutionAlias>
+            <desktop:ExecutionAlias Alias="sticklink.exe" />
+          </uap3:AppExecutionAlias>
+        </uap3:Extension>
+      </Extensions>
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <Capability Name="internetClientServer" />
+    <Capability Name="privateNetworkClientServer" />
+    <rescap:Capability Name="runFullTrust" />
+  </Capabilities>
+</Package>

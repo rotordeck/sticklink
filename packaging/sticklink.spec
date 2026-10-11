@@ -13,5 +13,10 @@ a = Analysis([os.path.join(SPECPATH, 'entry.py')], pathex=[], datas=datas, hidde
 pyz = PYZ(a.pure)
 # The Rotordeck mark: .ico for the Windows exe, .icns for macOS (Linux ELF files carry no icon).
 icon = os.path.join(SPECPATH, {'win32': 'icon.ico', 'darwin': 'icon.icns'}.get(sys.platform, 'icon.png'))
-exe = EXE(pyz, a.scripts, a.binaries, a.datas, [], name='sticklink', console=True, upx=False, icon=icon,
-          strip=sys.platform.startswith('linux'))  # the CI Linux Python ships an unstripped 30 MB libpython
+strip = sys.platform.startswith('linux')  # the CI Linux Python ships an unstripped 30 MB libpython
+if os.environ.get('STICKLINK_ONEDIR'):
+    # One folder (dist/sticklink/) for the Microsoft Store package: no unpacking to a temp folder on every start.
+    exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name='sticklink', console=True, upx=False, icon=icon, strip=strip)
+    coll = COLLECT(exe, a.binaries, a.datas, name='sticklink', upx=False, strip=strip)
+else:
+    exe = EXE(pyz, a.scripts, a.binaries, a.datas, [], name='sticklink', console=True, upx=False, icon=icon, strip=strip)

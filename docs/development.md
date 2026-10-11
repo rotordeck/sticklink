@@ -55,7 +55,7 @@ platform is built on its own CI runner. After building, reinstall the editable c
 | Workflow | Runs on | Does |
 |---|---|---|
 | `.github/workflows/ci.yml` | every push and pull request | Python tests on Linux, Windows and macOS (Python 3.10 and 3.13); overlay tests, type check and a check that the committed bundles are up to date |
-| `.github/workflows/release.yml` | tags `v*`, or run by hand | builds the wheel and source package, and the PyInstaller binaries for Linux (x86-64), Windows (x86-64), macOS (Apple Silicon and Intel); smoke-tests each binary; on a tag, attaches everything with `SHA256SUMS.txt` to a GitHub Release, then uploads the wheel and source package to PyPI (so `uvx sticklink` works) |
+| `.github/workflows/release.yml` | tags `v*`, or run by hand | builds the wheel and source package, and the PyInstaller binaries for Linux (x86-64), Windows (x86-64), macOS (Apple Silicon and Intel); smoke-tests each binary; on a tag, attaches everything with `SHA256SUMS.txt` to a GitHub Release, then uploads the wheel and source package to PyPI (so `uvx sticklink` works); also builds the Microsoft Store package (`store-package` artifact, an unsigned `.msix` from `packaging/msix/`) to upload in Partner Center |
 
 ## Releasing
 
