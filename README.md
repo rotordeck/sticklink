@@ -113,6 +113,34 @@ More in [docs/cli.md](https://github.com/rotordeck/sticklink/blob/main/docs/cli.
 - Sticklink only **reads** from the radio. It never writes to it and never changes ExpressLRS or model settings.
 - Unsigned downloads: macOS Gatekeeper and Windows SmartScreen will warn once ([getting started](https://github.com/rotordeck/sticklink/blob/main/docs/getting-started.md)).
 
+## Frequently asked questions
+
+### How do I show my stick inputs in OBS?
+
+Run Sticklink with your EdgeTX radio plugged in over USB, then add `http://127.0.0.1:47613/fx` to OBS as a Browser Source (576x450, 60 fps). See [Quick start](#quick-start) and the [OBS setup guide](https://github.com/rotordeck/sticklink/blob/main/docs/obs-setup.md).
+
+### Can I get a live stick overlay without a camera on the radio?
+
+Yes. Sticklink reads the sticks straight from the radio, so there is no stick cam to mount or light. Try it first without a radio: `sticklink run --demo`.
+
+### Does it work with ExpressLRS, TBS Crossfire or my RadioMaster?
+
+Sticklink reads the radio over USB, not the RF link, so the link type shouldn't matter and any EdgeTX radio with USB should work. Verified so far on a RadioMaster Pocket (EdgeTX 2.10) with ExpressLRS on Linux; see [Status and honest limits](#status-and-honest-limits).
+
+### Can it show live telemetry such as battery voltage, link quality and GPS?
+
+Yes, the Telemetry HUD (`/hud`) shows the telemetry your radio receives. Motor outputs, RPM and gyro are not sent over the radio link, so they are not available live.
+
+## More free FPV tools from Rotordeck
+
+- [Stickbeats](https://rotordeck.com/stickbeats/): free EdgeTX sound themes and voice packs, with a mixer to record your own
+- [OSD Fonts](https://rotordeck.com/osd-fonts/): 278 retro fonts and a font editor for the Betaflight analog OSD
+- [Betasplash](https://rotordeck.com/betasplash/): make a Betaflight OSD boot logo with your callsign
+- [bf](https://rotordeck.com/bf/): configure Betaflight from the command line, for humans and AI agents
+- [Rotordeck skills](https://github.com/rotordeck/skills): Agent Skills that teach Claude Code and other agents to set up Betaflight
+
+All of them in one place: the [Rotordeck Toy Box](https://rotordeck.com/toybox/).
+
 ## Community
 
 - **Closed Android beta**: [join the Rotordeck beta](https://rotordeck.com/).
